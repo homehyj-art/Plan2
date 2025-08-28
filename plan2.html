@@ -1,0 +1,197 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+
+const DEFAULT_STATS = { K:40, S:40, R:40, T:40 };
+const MAX_STEPS = 8;
+
+// --- Firebase: 설정(프로젝트에서 값으로 대체) ---
+const FIREBASE_CONFIG = null; // 예: { apiKey: "...", authDomain: "...", projectId: "...", ... }
+
+let db = null;
+if (FIREBASE_CONFIG) {
+  try {
+    const app = initializeApp(FIREBASE_CONFIG);
+    db = getFirestore(app);
+  } catch(e){ console.warn('firebase init fail', e); }
+}
+
+// 간단한 clamp
+const clamp = (v) => Math.max(0, Math.min(100, v));
+
+function StatBar({label, value, emoji, colorClass}){
+  return (
+    <div className="bg-white/70 rounded-2xl p-3 shadow">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm"><span>{emoji}</span><span>{label}</span></div>
+        <div className="text-xs text-gray-400">{value}</div>
+      </div>
+      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-2">
+        <div className={`h-full ${colorClass}`} style={{width:`${value}%`}} />
+      </div>
+    </div>
+  );
+}
+
+export default function App(){
+  const [stats, setStats] = useState(DEFAULT_STATS);
+  const [step, setStep] = useState(0);
+  const [cards, setCards] = useState([]);
+  const [endings, setEndings] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [dreamName, setDreamName] = useState('');
+  const [dreamText, setDreamText] = useState('');
+
+  useEffect(()=> {
+    (async ()=> {
+      try {
+        const cRes = await fetch('/cards.json'); const cJson = await cRes.json();
+        setCards(cJson);
+      } catch(e){ console.warn('cards fetch fail', e); }
+      try {
+        const eRes = await fetch('/endings.json'); const eJson = await eRes.json();
+        setEndings(eJson);
+      } catch(e){ console.warn('endings fetch fail', e); }
+    })();
+  }, []);
+
+  const currentCard = useMemo(()=> cards.length ? cards[step % cards.length] : null, [cards, step]);
+
+  const applyChoice = async (choice) => {
+    setStats(prev => {
+      const next = {...prev};
+      Object.entries(choice.delta || {}).forEach(([k,v]) => next[k] = clamp((next[k]||0)+v));
+      return next;
+    });
+    setHistory(h => [`${currentCard.title} → ${choice.label}`, ...h]);
+    setStep(s => s + 1);
+  };
+
+  const reset = () => { setStats(DEFAULT_STATS); setStep(0); setHistory([]); };
+
+  const finished = step >= MAX_STEPS;
+
+  const evaluateEnding = () => {
+    const s = stats;
+    const maxVal = Math.max(s.K, s.S, s.R, s.T);
+    const preferred = (s.K === maxVal ? 'K' : s.S === maxVal ? 'S' : s.R === maxVal ? 'R' : 'T');
+    let candidates = endings.filter(e => (e.preferred === 'ANY' || e.preferred === preferred) && (e.threshold <= maxVal));
+    if(candidates.length === 0) {
+      candidates = endings.filter(e => (e.preferred === 'ANY' || e.preferred === preferred));
+    }
+    candidates.sort((a,b)=> (b.threshold||0) - (a.threshold||0));
+    return candidates.length ? candidates[0] : {title:'미정', desc:'다양한 가능성 존재'};
+  };
+
+  const saveRecord = async () => {
+    // local
+    const arr = JSON.parse(localStorage.getItem('lifeGameRecords')||'[]');
+    arr.push({ date: new Date().toISOString(), stats, history });
+    localStorage.setItem('lifeGameRecords', JSON.stringify(arr));
+    // firestore
+    if(db){
+      try {
+        const col = collection(db, 'lifeGameRecords');
+        await addDoc(col, { stats, history, createdAt: serverTimestamp() });
+        alert('서버에 저장되었습니다.');
+      } catch(e){ console.warn('save fail', e); alert('서버 저장 실패(콘솔 확인)'); }
+    } else {
+      alert('로컬에 저장되었습니다 (Firebase 미설정)');
+    }
+  };
+
+  const saveDream = async () => {
+    if(!dreamText.trim()) return alert('내용을 입력하세요');
+    const rec = {name: dreamName||'익명', text: dreamText, date: new Date().toISOString()};
+    const arr = JSON.parse(localStorage.getItem('lifeGameDreams')||'[]'); arr.push(rec); localStorage.setItem('lifeGameDreams', JSON.stringify(arr));
+    if(db){
+      try {
+        await addDoc(collection(db,'lifeGameDreams'), { name: rec.name, text: rec.text, createdAt: serverTimestamp() });
+        alert('발표가 서버에 저장되었습니다.');
+      } catch(e){ console.warn('dream save fail', e); alert('서버 저장 실패'); }
+    } else {
+      alert('로컬에 저장되었습니다 (Firebase 미설정)');
+    }
+    setDreamName(''); setDreamText('');
+  };
+
+  const ending = evaluateEnding();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-fuchsia-50 to-sky-50 p-6">
+      <div className="max-w-5xl mx-auto">
+        <header className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-2xl">🃏 인생 역전! 라이프 카드 게임</h1>
+            <p className="text-gray-500 text-sm">카드를 골라 능력치를 키워 다양한 엔딩을 만나보세요.</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={()=> setStep(s=>s+1)} className="px-3 py-2 rounded-2xl bg-indigo-500 text-white shadow">다음 카드</button>
+            <button onClick={reset} className="px-3 py-2 rounded-2xl bg-gray-200">처음부터</button>
+          </div>
+        </header>
+
+        <section className="grid md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <StatBar label="지식" value={stats.K} emoji="📘" colorClass="bg-blue-300" />
+              <StatBar label="체력" value={stats.S} emoji="💪" colorClass="bg-green-300" />
+              <StatBar label="인간관계" value={stats.R} emoji="🤝" colorClass="bg-rose-300" />
+              <StatBar label="재능" value={stats.T} emoji="✨" colorClass="bg-pink-300" />
+            </div>
+
+            <AnimatePresence mode="wait">
+              {!finished ? (
+                <motion.div key={step} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}} className="bg-white rounded-2xl p-5 shadow">
+                  {currentCard ? (
+                    <>
+                      <h3 className="text-xl mb-1">{currentCard.title}</h3>
+                      <p className="text-gray-500 mb-3">{currentCard.text}</p>
+                      <div className="grid gap-2">
+                        {currentCard.choices.map((c,i)=>(
+                          <button key={i} onClick={()=> applyChoice(c)} className="text-left px-4 py-3 rounded-xl bg-gray-100 hover:shadow">{c.label}</button>
+                        ))}
+                      </div>
+                    </>
+                  ) : <div>카드 로딩 중...</div>}
+                </motion.div>
+              ) : (
+                <motion.div key="end" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} className="space-y-3">
+                  <div className="bg-white rounded-2xl p-5 shadow">
+                    <div className="text-xl">{ending.title}</div>
+                    <div className="mt-2 text-gray-600">{ending.desc}</div>
+                    <div className="mt-3 flex gap-2">
+                      <button onClick={saveRecord} className="px-3 py-2 rounded-2xl bg-indigo-500 text-white">기록 저장</button>
+                      <button onClick={()=> {
+                        const blob = new Blob([JSON.stringify({stats, history},null,2)], {type:'application/json'});
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href=url; a.download='life-result.json'; a.click(); URL.revokeObjectURL(url);
+                      }} className="px-3 py-2 rounded-2xl bg-gray-200">결과 내보내기</button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="space-y-3">
+            <div className="bg-white rounded-2xl p-4 shadow">
+              <div className="font-semibold mb-2">📝 선택 기록</div>
+              <div className="space-y-1 max-h-64 overflow-auto text-sm">{history.map((h,i)=><div key={i}>• {h}</div>)}</div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4 shadow">
+              <div className="font-semibold mb-2">🏆 나의 꿈 발표 대회</div>
+              <input value={dreamName} onChange={e=>setDreamName(e.target.value)} placeholder="이름(선택)" className="w-full border rounded-xl px-3 py-2 mb-2" />
+              <textarea value={dreamText} onChange={e=>setDreamText(e.target.value)} rows={3} placeholder="나의 꿈/진로" className="w-full border rounded-xl px-3 py-2" />
+              <div className="flex gap-2 mt-2">
+                <button onClick={saveDream} className="px-3 py-2 rounded-2xl bg-indigo-500 text-white">등록</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
