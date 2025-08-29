@@ -1,213 +1,419 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>📜 Ancient Calling — 다중지능 탐험</title>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+<style>
+:root { --brown-text:#4a3a2a; --gold:#c89a4b; }
+*{box-sizing:border-box}
+body{margin:0;font-family:'Gowun Dodum',serif;background:#5d4037 url('https://images.unsplash.com/photo-1520256862855-398228c41684?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat fixed;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;position:relative;overflow:hidden}
+body:before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.wrap{position:relative;z-index:1;width:100%;max-width:1200px}
+.header{text-align:center;margin-bottom:16px}
+.title{font-family:'Cinzel',serif;font-size:clamp(2rem,5vw,3.25rem);color:var(--gold);text-shadow:2px 2px 8px rgba(0,0,0,.8)}
+.subtitle{opacity:.9;font-size:clamp(1rem,2vw,1.1rem)}
+.layout{display:flex;gap:16px}
+.left{width:360px}
+.right{flex:1}
+.card{background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border-radius:16px;padding:16px;border:1px solid rgba(255,215,102,.15);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.char-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.char{padding:10px;border-radius:12px;background:rgba(0,0,0,.35);text-align:center;cursor:pointer;border:1px solid transparent;transition:.2s}
+.char:hover{transform:translateY(-3px);border-color:var(--gold)}
+.char.selected{background:rgba(200,154,75,.28);border-color:var(--gold);transform:translateY(-3px)}
+label{display:block;color:var(--gold);font-weight:700;margin:6px 0}
+input[type=text]{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,215,102,.2);background:rgba(0,0,0,.3);color:#fff;margin-bottom:8px}
+.btn{display:inline-flex;gap:8px;align-items:center;justify-content:center;padding:12px 16px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(145deg,#b38645,#835e2c);color:#fff;font-weight:700;width:100%;font-size:1rem;box-shadow:0 5px 15px rgba(0,0,0,.4);transition:.2s}
+.btn:hover{transform:translateY(-1px)}
+.btn:disabled{background:#555;cursor:not-allowed;box-shadow:none}
+#game-card{background:url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;color:var(--brown-text);padding:40px;min-height:560px;position:relative}
+.quest-header{text-align:center;margin-bottom:8px}
+.quest-header h3{font-family:'Cinzel',serif;color:#5b3e22;margin:0;font-size:clamp(1.1rem,2.2vw,1.4rem)}
+.quest-text{font-size:clamp(1rem,2.1vw,1.2rem);line-height:1.9;min-height:116px}
+.options{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px}
+.option{padding:12px;border-radius:12px;background:rgba(189,168,133,.35);cursor:pointer;border:1px solid rgba(112,83,48,.3);transition:.15s;text-align:center;user-select:none}
+.option:hover{transform:scale(1.02);background:rgba(189,168,133,.5)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;color:#fff}
+.stat{background:rgba(0,0,0,.35);padding:8px;border-radius:10px;text-align:center}
+.bar{height:10px;background:rgba(255,255,255,.12);border-radius:6px;margin-top:8px;overflow:hidden}
+.bar-inner{height:100%;background:linear-gradient(90deg,var(--gold),#e6b873);width:0%}
+.result-content{text-align:center}
+@media(max-width:900px){.layout{flex-direction:column}.left{width:100%}#game-card{padding:28px}}
+.spinner{display:none;border:4px solid rgba(255,255,255,.3);border-top:4px solid var(--gold);border-radius:50%;width:26px;height:26px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.small{font-size:.9rem;opacity:.9}
+</style>
+</head>
+<body>
+<audio id="bgm" src="https://assets.mixkit.co/sfx/preview/mixkit-calm-music-2200.mp3" loop></audio>
+<audio id="sfx-turn" src="https://assets.mixkit.co/sfx/preview/mixkit-game-click-1110.mp3"></audio>
+<audio id="sfx-magic" src="https://www.soundjay.com/misc/sounds/magic-chime-02.mp3"></audio>
 
-const DEFAULT_STATS = { K:40, S:40, R:40, T:40 };
-const MAX_STEPS = 8;
+<div class="wrap">
+  <div class="header">
+    <div class="title">Ancient Calling</div>
+    <div class="subtitle">중1 모험가를 위한 다중지능 탐험 RPG</div>
+  </div>
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+  <div class="layout">
+    <div class="left">
+      <div class="card">
+        <label>모험가 이름</label>
+        <input id="input-name" type="text" placeholder="예: 김민준" />
+        <label>소속 (반)</label>
+        <input id="input-class" type="text" placeholder="예: 1학년 3반" />
+        <label>여정을 함께할 동료</label>
+        <div id="char-row" class="char-row">
+          <div class="char" data-id="warrior"><div class="emoji">⚔️</div><div class="name">전사</div></div>
+          <div class="char" data-id="wizard"><div class="emoji">🔮</div><div class="name">마법사</div></div>
+          <div class="char" data-id="archer"><div class="emoji">🏹</div><div class="name">궁수</div></div>
+          <div class="char" data-id="healer"><div class="emoji">🌿</div><div class="name">치유사</div></div>
+        </div>
+        <div style="margin-top:16px">
+          <button id="btn-start" class="btn" disabled>
+            <span id="start-btn-text">▶ 모험 시작하기</span>
+            <div id="start-btn-spinner" class="spinner"></div>
+          </button>
+          <p class="small" style="margin:10px 0 0">선택지는 재미있게 보이지만, 각각 <strong>8가지 지능</strong> 중 하나와 연결됩니다.</p>
+        </div>
+      </div>
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBUKwD2oMtcpMClaNHDNhHoG1ogBYu623k",
-  authDomain: "plan-a1107.firebaseapp.com",
-  projectId: "plan-a1107",
-  storageBucket: "plan-a1107.firebasestorage.app",
-  messagingSenderId: "1071905265794",
-  appId: "1:1071905265794:web:2e7b46032bbe8ac7f97c9b"
+      <div id="stats-panel" class="card" style="margin-top:12px; display:none;">
+          <div id="stats" class="stats-grid"></div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div id="game-card" class="card">
+        <div id="pre-game" style="text-align:center; padding-top:60px">
+          <h3 style="font-family:'Cinzel', serif; color:#5b3e22">📜 모험의 서막</h3>
+          <p class="small" style="color:#2e1f13;background:rgba(255,255,255,.6);display:inline-block;padding:10px 12px;border-radius:10px">이름/반을 적고 캐릭터를 고른 뒤 시작하세요. <br/>각 선택은 당신의 강점을 비추는 힌트가 됩니다.</p>
+        </div>
+
+        <div id="game-area" style="display:none">
+          <div class="quest-header"><h3 id="quest-title"></h3></div>
+          <div id="quest-text" class="quest-text"></div>
+          <div id="options" class="options"></div>
+        </div>
+        
+        <div id="result-area" style="display:none; padding-top: 40px;">
+          <div class="result-content" id="result-content"></div>
+          <button id="btn-restart" class="btn" style="max-width:300px; margin: 18px auto 0;">🔄 새로운 모험 시작하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 사운드 =====
+const S = { bgm: document.getElementById('bgm'), click: document.getElementById('sfx-turn'), magic: document.getElementById('sfx-magic') };
+S.bgm.volume = 0.18;
+
+// ===== 공용 헬퍼 =====
+const el = id => document.getElementById(id);
+const baseScores = {linguistic:50,logical:50,spatial:50,bodily:50,musical:50,interpersonal:50,intrapersonal:50,naturalist:50};
+let scores = {};
+let player = {name:'',clazz:'',charId:'',questIndex:0};
+
+const NAMES = {linguistic:'언어 지능',logical:'논리-수학 지능',spatial:'공간 지능',bodily:'신체-운동 지능',musical:'음악 지능',interpersonal:'대인관계 지능',intrapersonal:'자기이해 지능',naturalist:'자연친화 지능'};
+
+// ===== 서사: 챕터 타이틀 & 장면 텍스트(20단계) =====
+const CHAPTERS = {
+  warrior: [
+    ['숲의 경계','안개 낀 숲 가장자리에서 모험의 첫 발을 내딛는다.'],
+    ['불씨와 바람','마을 화톳불이 꺼지고 두려움이 감돈다.'],
+    ['초원의 외침','들판 끝에서 도움을 청하는 목소리가 들린다.'],
+    ['무너진 다리','골짜기의 나무다리가 흔들린다.'],
+    ['돌의 기억','고대 석상이 희미한 빛을 낸다.'],
+    ['용의 숨결','동굴 깊숙이 따뜻한 바람이 분다.'],
+    ['성벽의 그림자','성문 앞 긴 행렬, 불안이 스민다.'],
+    ['전우의 맹세','동료들의 눈빛이 흔들린다.'],
+    ['모래의 시계','황무지에서 사막 폭풍이 다가온다.'],
+    ['밤의 추적','달빛 아래 수상한 흔적이 이어진다.'],
+    ['가면의 시장','분주한 시장에 거짓 소문이 돈다.'],
+    ['강철의 시험','훈련장에 오래된 시험이 열렸다.'],
+    ['숲의 심장','거대한 나무뿌리 속에 길이 숨는다.'],
+    ['메아리의 협곡','함성도 속삭임도 크게 울리는 절벽.'],
+    ['빛의 계단','구름계를 오르면 성소가 보인다.'],
+    ['고요한 전야','결전을 앞둔 밤, 바람이 잦아든다.'],
+    ['격돌','마침내 어둠의 장군이 나타난다.'],
+    ['흔들림 없는 발걸음','싸움이 끝나고도 작은 선택이 남는다.'],
+    ['왕의 인장','진실을 증명할 표식을 찾아야 한다.'],
+    ['새벽의 문','새벽빛이 성문을 적신다. 긴 여정의 끝.']
+  ],
+  wizard: [
+    ['먼지의 서가','고요한 도서관에 봉인된 책이 떨린다.'],
+    ['룬의 반짝임','바닥 문양이 미세한 규칙으로 흐른다.'],
+    ['별의 잉크','천장에 별빛 글자가 나타난다.'],
+    ['수정의 균열','마력 수정에 가는 금이 간다.'],
+    ['환영의 문','같은 복도가 끝없이 반복된다.'],
+    ['지식의 탑','나선계단 위에서 속삭임이 들린다.'],
+    ['거울의 질문','거울 속 내가 다른 주문을 외운다.'],
+    ['시간의 매듭','시계추가 앞뒤로 동시에 흔들린다.'],
+    ['깃털의 기록','도서관 새가 한 글자를 떨어뜨린다.'],
+    ['주문 공방','실패와 성공이 교차한다.'],
+    ['흑서의 유혹','검은 장정이 은빛을 삼킨다.'],
+    ['원소의 합주','불·물·바람·흙이 한 호흡으로 춤춘다.'],
+    ['정령의 수업','보이지 않는 학생들이 앉아 있다.'],
+    ['침묵의 종','종을 치지 않아도 울린다.'],
+    ['봉인의 열쇠','열쇠는 보이지만 자물쇠가 없다.'],
+    ['마력의 흐름','손끝이 저릿하며 빛이 모인다.'],
+    ['공명의 방','한 생각이 천 생각으로 번진다.'],
+    ['어둠의 균형','없애지 말고 다스리라 속삭임이 온다.'],
+    ['진실의 문장','마지막 문장 하나가 빠져 있다.'],
+    ['새벽의 수료','첫 페이지가 마지막을 축복한다.']
+  ],
+  archer: [
+    ['바람의 길','갈대숲이 바람의 방향을 가리킨다.'],
+    ['매의 눈','먼 숲 속 반짝임 하나.'],
+    ['흔들리는 밧줄교','발아래 강물이 속삭인다.'],
+    ['개울의 리듬','돌 위로 맑은 물이 박자를 만든다.'],
+    ['이끼의 지문','바위면에 초록이 길을 새긴다.'],
+    ['바위의 틈','협곡 바람이 호루라기를 분다.'],
+    ['고요한 숨','숨을 들이쉬자 세상이 또렷해진다.'],
+    ['사슴의 발자국','한 걸음, 또 한 걸음.'],
+    ['하늘의 표적','구름 사이 해가 원을 그린다.'],
+    ['바람의 언덕','풀잎이 물결처럼 기울어진다.'],
+    ['새벽 사냥','첫빛이 숲을 깨운다.'],
+    ['비밀 동굴','벽화가 발걸음을 맞춘다.'],
+    ['나뭇결의 편지','연륜이 둥글게 숫자를 말한다.'],
+    ['바람의 시험','깃털 하나가 흔들림을 가르친다.'],
+    ['강가의 반사','표적은 물 위에 있다.'],
+    ['새의 노래','높낮이가 길을 만든다.'],
+    ['초점','모든 소리를 내려놓는다.'],
+    ['연대의 신호','멀리 동료의 연기가 솟는다.'],
+    ['자연의 답장','숲이 먼저 인사한다.'],
+    ['귀환','활줄이 마음을 닮았다.']
+  ],
+  healer: [
+    ['낙엽의 속삭임','마을 아이의 기침이 밤을 깨운다.'],
+    ['샘의 노래','물결이 잔잔히 말을 건넨다.'],
+    ['약초의 길','향이 이끄는 산비탈.'],
+    ['손의 기억','따뜻한 손길이 떨림을 잦힌다.'],
+    ['정령의 부탁','보이지 않는 손이 어깨에 닿는다.'],
+    ['합창의 치유','노랫결이 골목을 감싼다.'],
+    ['마을 회의','서로의 말이 엇갈린다.'],
+    ['고요의 방','숨소리 하나, 맥 하나.'],
+    ['별빛 기록','밤하늘 아래 노트를 편다.'],
+    ['새싹의 증언','작은 초록이 큰 변화를 말한다.'],
+    ['온기의 비율','불꽃과 물의 균형을 잡는다.'],
+    ['길 위의 위로','낯선 이의 눈물이 반짝인다.'],
+    ['강의 다리','넘실거림에 리듬이 있다.'],
+    ['공감의 원','손잡고 원을 만든다.'],
+    ['마지막 재료','한 가지가 아직 모자라다.'],
+    ['선택의 순간','누구를 먼저 도울까.'],
+    ['이별과 감사','굿바이, 그리고 고마움.'],
+    ['회복의 장','웃음소리가 돌아온다.'],
+    ['기록의 마침표','다음 누군가를 위해 남긴다.'],
+    ['새벽의 인사','오늘의 빛으로 내일을 연다.']
+  ]
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// ===== 선택지 문구 템플릿(캐릭터별 × 8지능) =====
+const TPL = {
+  warrior: {
+    linguistic: '📜 전장의 기록과 표지를 읽어 단서를 찾는다. (언어)',
+    logical:   '🧮 상황을 논리적으로 분석해 최선의 해법을 세운다. (논리)',
+    spatial:   '🗺️ 지형을 머릿속에 그려 동선을 최적화한다. (공간)',
+    bodily:    '⚔️ 몸으로 먼저 움직여 길을 연다. (신체)',
+    musical:   '🥁 박자와 리듬으로 팀의 호흡을 맞춘다. (음악)',
+    interpersonal:'🤝 동료와 소통해 협력의 힘을 끌어낸다. (대인)',
+    intrapersonal:'🧘 마음을 다스려 침착하게 결단한다. (자기이해)',
+    naturalist:'🌿 바람·흙·발자국에서 자연의 힌트를 읽는다. (자연)'
+  },
+  wizard: {
+    linguistic: '📖 고대 문장을 해독해 의미를 밝혀낸다. (언어)',
+    logical:   '🧩 룬의 규칙을 분석해 공식을 완성한다. (논리)',
+    spatial:   '🔷 마법진의 구조를 시각화한다. (공간)',
+    bodily:    '🪄 손짓과 제스처로 정교한 캐스팅을 수행한다. (신체)',
+    musical:   '🎼 주문의 음계를 맞춰 공명을 일으킨다. (음악)',
+    interpersonal:'🗣️ 정령/길드와 대화로 협업을 끌어낸다. (대인)',
+    intrapersonal:'🧘‍♂️ 내면의 마나 흐름을 조율한다. (자기이해)',
+    naturalist:'🍃 원소와 생태의 상호작용을 이용한다. (자연)'
+  },
+  archer: {
+    linguistic: '📝 표식과 흔적의 의미를 기록한다. (언어)',
+    logical:   '📐 바람·각도·거리 값을 계산한다. (논리)',
+    spatial:   '🎯 원거리 시야로 지형을 입체적으로 파악한다. (공간)',
+    bodily:    '🏃‍♀️ 민첩하게 이동하며 자세를 잡는다. (신체)',
+    musical:   '🎵 바람소리의 박자로 타이밍을 맞춘다. (음악)',
+    interpersonal:'👥 동료와 수신호로 협동한다. (대인)',
+    intrapersonal:'🧘 호흡을 낮추고 집중을 극대화한다. (자기이해)',
+    naturalist:'🦌 동식물의 습성을 읽어 길을 찾는다. (자연)'
+  },
+  healer: {
+    linguistic: '✍️ 증상과 변화를 세밀히 기록해 소통한다. (언어)',
+    logical:   '⚖️ 원인-결과를 정리해 처방을 설계한다. (논리)',
+    spatial:   '🧭 이동 동선을 설계하고 배치한다. (공간)',
+    bodily:    '🤲 손기술과 도구로 직접 돌본다. (신체)',
+    musical:   '🎶 안정의 멜로디로 마음을 가라앉힌다. (음악)',
+    interpersonal:'💬 공감과 상담으로 신뢰를 세운다. (대인)',
+    intrapersonal:'🫀 스스로의 감정을 살피며 균형을 잡는다. (자기이해)',
+    naturalist:'🌱 약초·물·햇빛 등 자연 치유력을 활용한다. (자연)'
+  }
+};
 
-let db = null;
-if (FIREBASE_CONFIG) {
-  try {
-    const app = initializeApp(FIREBASE_CONFIG);
-    db = getFirestore(app);
-  } catch(e){ console.warn('firebase init fail', e); }
+// ===== 각 단계에서 제시할 4지능(20단계 × 캐릭터 공통 로테이션) =====
+// 20단계 동안 8지능이 고르게 여러 번 나타나도록 설계
+const ROTATION = [
+  ['linguistic','logical','interpersonal','bodily'],
+  ['spatial','naturalist','intrapersonal','musical'],
+  ['logical','spatial','bodily','interpersonal'],
+  ['naturalist','linguistic','musical','intrapersonal'],
+  ['bodily','spatial','logical','naturalist'],
+  ['musical','interpersonal','linguistic','intrapersonal'],
+  ['spatial','logical','musical','bodily'],
+  ['interpersonal','intrapersonal','linguistic','naturalist'],
+  ['logical','naturalist','spatial','interpersonal'],
+  ['linguistic','musical','bodily','intrapersonal'],
+  ['naturalist','spatial','interpersonal','logical'],
+  ['musical','linguistic','intrapersonal','bodily'],
+  ['spatial','naturalist','logical','linguistic'],
+  ['interpersonal','musical','bodily','spatial'],
+  ['intrapersonal','linguistic','naturalist','logical'],
+  ['bodily','interpersonal','spatial','musical'],
+  ['logical','intrapersonal','linguistic','naturalist'],
+  ['spatial','bodily','musical','interpersonal'],
+  ['naturalist','logical','intrapersonal','linguistic'],
+  ['musical','spatial','interpersonal','bodily']
+];
+
+// ===== 퀘스트 데이터 생성: 4캐릭터 × 20단계 =====
+function buildQuests(charId){
+  const list = CHAPTERS[charId];
+  return list.map((pair, idx)=>{
+    const [title, scene] = pair;
+    const keys = ROTATION[idx];
+    const options = keys.map(k=>({ t: TPL[charId][k], e: {[k]: 12} }));
+    return { title, text: scene, options };
+  });
 }
 
-// 간단한 clamp
-const clamp = (v) => Math.max(0, Math.min(100, v));
+const quests = {
+  warrior: buildQuests('warrior'),
+  wizard:  buildQuests('wizard'),
+  archer:  buildQuests('archer'),
+  healer:  buildQuests('healer')
+};
 
-function StatBar({label, value, emoji, colorClass}){
-  return (
-    <div className="bg-white/70 rounded-2xl p-3 shadow">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm"><span>{emoji}</span><span>{label}</span></div>
-        <div className="text-xs text-gray-400">{value}</div>
-      </div>
-      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-2">
-        <div className={`h-full ${colorClass}`} style={{width:`${value}%`}} />
-      </div>
-    </div>
-  );
+// ===== 인터랙션 =====
+function resetGame(){
+  scores = JSON.parse(JSON.stringify(baseScores));
+  player = {name:'',clazz:'',charId:'',questIndex:0};
+  document.querySelectorAll('.char').forEach(c=>c.classList.remove('selected'));
+  el('game-area').style.display='none';
+  el('result-area').style.display='none';
+  el('pre-game').style.display='block';
+  el('stats-panel').style.display='none';
+  el('input-name').value='';
+  el('input-class').value='';
+  el('start-btn-text').style.display='inline';
+  el('start-btn-spinner').style.display='none';
+  checkStartButton();
 }
 
-export default function App(){
-  const [stats, setStats] = useState(DEFAULT_STATS);
-  const [step, setStep] = useState(0);
-  const [cards, setCards] = useState([]);
-  const [endings, setEndings] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [dreamName, setDreamName] = useState('');
-  const [dreamText, setDreamText] = useState('');
-
-  useEffect(()=> {
-    (async ()=> {
-      try {
-        const cRes = await fetch('/cards.json'); const cJson = await cRes.json();
-        setCards(cJson);
-      } catch(e){ console.warn('cards fetch fail', e); }
-      try {
-        const eRes = await fetch('/endings.json'); const eJson = await eRes.json();
-        setEndings(eJson);
-      } catch(e){ console.warn('endings fetch fail', e); }
-    })();
-  }, []);
-
-  const currentCard = useMemo(()=> cards.length ? cards[step % cards.length] : null, [cards, step]);
-
-  const applyChoice = async (choice) => {
-    setStats(prev => {
-      const next = {...prev};
-      Object.entries(choice.delta || {}).forEach(([k,v]) => next[k] = clamp((next[k]||0)+v));
-      return next;
-    });
-    setHistory(h => [`${currentCard.title} → ${choice.label}`, ...h]);
-    setStep(s => s + 1);
-  };
-
-  const reset = () => { setStats(DEFAULT_STATS); setStep(0); setHistory([]); };
-
-  const finished = step >= MAX_STEPS;
-
-  const evaluateEnding = () => {
-    const s = stats;
-    const maxVal = Math.max(s.K, s.S, s.R, s.T);
-    const preferred = (s.K === maxVal ? 'K' : s.S === maxVal ? 'S' : s.R === maxVal ? 'R' : 'T');
-    let candidates = endings.filter(e => (e.preferred === 'ANY' || e.preferred === preferred) && (e.threshold <= maxVal));
-    if(candidates.length === 0) {
-      candidates = endings.filter(e => (e.preferred === 'ANY' || e.preferred === preferred));
-    }
-    candidates.sort((a,b)=> (b.threshold||0) - (a.threshold||0));
-    return candidates.length ? candidates[0] : {title:'미정', desc:'다양한 가능성 존재'};
-  };
-
-  const saveRecord = async () => {
-    // local
-    const arr = JSON.parse(localStorage.getItem('lifeGameRecords')||'[]');
-    arr.push({ date: new Date().toISOString(), stats, history });
-    localStorage.setItem('lifeGameRecords', JSON.stringify(arr));
-    // firestore
-    if(db){
-      try {
-        const col = collection(db, 'lifeGameRecords');
-        await addDoc(col, { stats, history, createdAt: serverTimestamp() });
-        alert('서버에 저장되었습니다.');
-      } catch(e){ console.warn('save fail', e); alert('서버 저장 실패(콘솔 확인)'); }
-    } else {
-      alert('로컬에 저장되었습니다 (Firebase 미설정)');
-    }
-  };
-
-  const saveDream = async () => {
-    if(!dreamText.trim()) return alert('내용을 입력하세요');
-    const rec = {name: dreamName||'익명', text: dreamText, date: new Date().toISOString()};
-    const arr = JSON.parse(localStorage.getItem('lifeGameDreams')||'[]'); arr.push(rec); localStorage.setItem('lifeGameDreams', JSON.stringify(arr));
-    if(db){
-      try {
-        await addDoc(collection(db,'lifeGameDreams'), { name: rec.name, text: rec.text, createdAt: serverTimestamp() });
-        alert('발표가 서버에 저장되었습니다.');
-      } catch(e){ console.warn('dream save fail', e); alert('서버 저장 실패'); }
-    } else {
-      alert('로컬에 저장되었습니다 (Firebase 미설정)');
-    }
-    setDreamName(''); setDreamText('');
-  };
-
-  const ending = evaluateEnding();
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-fuchsia-50 to-sky-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-2xl">🃏 인생 역전! 라이프 카드 게임</h1>
-            <p className="text-gray-500 text-sm">카드를 골라 능력치를 키워 다양한 엔딩을 만나보세요.</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={()=> setStep(s=>s+1)} className="px-3 py-2 rounded-2xl bg-indigo-500 text-white shadow">다음 카드</button>
-            <button onClick={reset} className="px-3 py-2 rounded-2xl bg-gray-200">처음부터</button>
-          </div>
-        </header>
-
-        <section className="grid md:grid-cols-3 gap-4">
-          <div className="md:col-span-2 space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatBar label="지식" value={stats.K} emoji="📘" colorClass="bg-blue-300" />
-              <StatBar label="체력" value={stats.S} emoji="💪" colorClass="bg-green-300" />
-              <StatBar label="인간관계" value={stats.R} emoji="🤝" colorClass="bg-rose-300" />
-              <StatBar label="재능" value={stats.T} emoji="✨" colorClass="bg-pink-300" />
-            </div>
-
-            <AnimatePresence mode="wait">
-              {!finished ? (
-                <motion.div key={step} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}} className="bg-white rounded-2xl p-5 shadow">
-                  {currentCard ? (
-                    <>
-                      <h3 className="text-xl mb-1">{currentCard.title}</h3>
-                      <p className="text-gray-500 mb-3">{currentCard.text}</p>
-                      <div className="grid gap-2">
-                        {currentCard.choices.map((c,i)=>(
-                          <button key={i} onClick={()=> applyChoice(c)} className="text-left px-4 py-3 rounded-xl bg-gray-100 hover:shadow">{c.label}</button>
-                        ))}
-                      </div>
-                    </>
-                  ) : <div>카드 로딩 중...</div>}
-                </motion.div>
-              ) : (
-                <motion.div key="end" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} className="space-y-3">
-                  <div className="bg-white rounded-2xl p-5 shadow">
-                    <div className="text-xl">{ending.title}</div>
-                    <div className="mt-2 text-gray-600">{ending.desc}</div>
-                    <div className="mt-3 flex gap-2">
-                      <button onClick={saveRecord} className="px-3 py-2 rounded-2xl bg-indigo-500 text-white">기록 저장</button>
-                      <button onClick={()=> {
-                        const blob = new Blob([JSON.stringify({stats, history},null,2)], {type:'application/json'});
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a'); a.href=url; a.download='life-result.json'; a.click(); URL.revokeObjectURL(url);
-                      }} className="px-3 py-2 rounded-2xl bg-gray-200">결과 내보내기</button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="space-y-3">
-            <div className="bg-white rounded-2xl p-4 shadow">
-              <div className="font-semibold mb-2">📝 선택 기록</div>
-              <div className="space-y-1 max-h-64 overflow-auto text-sm">{history.map((h,i)=><div key={i}>• {h}</div>)}</div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-4 shadow">
-              <div className="font-semibold mb-2">🏆 나의 꿈 발표 대회</div>
-              <input value={dreamName} onChange={e=>setDreamName(e.target.value)} placeholder="이름(선택)" className="w-full border rounded-xl px-3 py-2 mb-2" />
-              <textarea value={dreamText} onChange={e=>setDreamText(e.target.value)} rows={3} placeholder="나의 꿈/진로" className="w-full border rounded-xl px-3 py-2" />
-              <div className="flex gap-2 mt-2">
-                <button onClick={saveDream} className="px-3 py-2 rounded-2xl bg-indigo-500 text-white">등록</button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+function checkStartButton(){
+  const name = el('input-name').value.trim();
+  const clazz = el('input-class').value.trim();
+  const isChar = !!player.charId;
+  el('btn-start').disabled = !(name && clazz && isChar);
 }
 
+document.querySelectorAll('.char').forEach(node=>{
+  node.addEventListener('click',()=>{
+    document.querySelectorAll('.char').forEach(c=>c.classList.remove('selected'));
+    node.classList.add('selected');
+    player.charId = node.dataset.id;
+    checkStartButton();
+  });
+});
+
+el('input-name').addEventListener('input',checkStartButton);
+el('input-class').addEventListener('input',checkStartButton);
+
+el('btn-start').addEventListener('click',()=>{
+  const name = el('input-name').value.trim();
+  const clazz = el('input-class').value.trim();
+  if(!(name&&clazz&&player.charId)) return;
+  player.name=name; player.clazz=clazz; player.questIndex=0;
+  el('start-btn-text').style.display='none';
+  el('start-btn-spinner').style.display='block';
+  S.bgm.play().catch(()=>{});
+  setTimeout(()=>{
+    el('pre-game').style.display='none';
+    el('game-area').style.display='block';
+    el('stats-panel').style.display='block';
+    renderQuest();
+    el('start-btn-text').style.display='inline';
+    el('start-btn-spinner').style.display='none';
+  },800);
+});
+
+el('btn-restart').addEventListener('click',resetGame);
+
+function renderQuest(){
+  const list = quests[player.charId];
+  if(!list || player.questIndex >= list.length){
+    return showResult();
+  }
+  const q = list[player.questIndex];
+  el('quest-title').textContent = `📜 Chapter ${player.questIndex+1}: ${q.title}`;
+  el('quest-text').textContent = q.text;
+  const root = el('options');
+  root.innerHTML = '';
+  q.options.forEach((o)=>{
+    const div = document.createElement('div');
+    div.className='option';
+    div.textContent = o.t;
+    div.onclick = ()=>{
+      S.click.currentTime=0; S.click.play();
+      applyEffects(o.e);
+      player.questIndex++;
+      renderStats();
+      setTimeout(()=>{ S.magic.currentTime=0; S.magic.play(); renderQuest(); }, 220);
+    };
+    root.appendChild(div);
+  });
+  renderStats();
+}
+
+function applyEffects(e){ Object.keys(e).forEach(k=>{ if(scores[k]!==undefined) scores[k]+=e[k]; }); }
+
+function renderStats(){
+  const root = el('stats');
+  root.innerHTML='';
+  Object.keys(scores).forEach(k=>{
+    const score = Math.min(100, Math.max(0, scores[k]));
+    const box = document.createElement('div');
+    box.className='stat';
+    box.innerHTML = `<div style="font-weight:700;color:var(--gold)">${NAMES[k]}</div>`+
+      `<div class="bar"><div class="bar-inner" style="width:${score}%"></div></div>`;
+    root.appendChild(box);
+  });
+}
+
+function showResult(){
+  el('game-area').style.display='none';
+  el('stats-panel').style.display='none';
+  el('result-area').style.display='block';
+  const entries = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  const [top1, top2, top3] = [entries[0][0], entries[1][0], entries[2][0]];
+  const resultHTML = `
+    <h3 style="font-family:'Cinzel',serif;color:#5b3e22">📜 모험의 결과</h3>
+    <p><strong>${player.name}</strong>(${player.clazz}) 모험가님, 훌륭하게 20단계 여정을 마쳤습니다.</p>
+    <p>당신의 선택을 종합해 본 결과…</p>
+    <h4 style="color:var(--gold);margin:.4em 0">🥇 당신의 강점 지능은 <strong>${NAMES[top1]}</strong> 입니다!</h4>
+    <h4 style="color:#bca06c;margin:.2em 0">🥈 2순위: ${NAMES[top2]}</h4>
+    <h4 style="color:#a78556;margin:.2em 0">🥉 3순위: ${NAMES[top3]}</h4>
+    <p class="small" style="color:#2e1f13;background:rgba(255,255,255,.65);display:inline-block;padding:10px 12px;border-radius:10px">강점은 상황에 따라 더 자랄 수 있어요. 다른 캐릭터로도 모험을 해보며 스펙트럼을 비교해 보세요!</p>
+  `;
+  el('result-content').innerHTML = resultHTML;
+}
+
+// 초기화
+resetGame();
+</script>
+</body>
+</html>
