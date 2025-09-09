@@ -96,7 +96,8 @@ input[type=text]{
 }
 
 #game-card {
-    background: url('https://i.ibb.co/L6dKqW4/papyrus-background-stable.png') no-repeat center center;
+    /* ✨ 여기가 수정된 부분입니다 ✨ */
+    background: url('https://i.imgur.com/G4fB8d0.png') no-repeat center center;
     background-size: 100% 100%;
     color: var(--brown-text);
     padding: 50px 60px;
@@ -724,7 +725,7 @@ function resetGame(){
     player={name:'',clazz:'',charId:'',questIndex:0};
     document.querySelectorAll('.char').forEach(c => c.classList.remove('selected'));
     el('game-area').style.display = 'none';
-    el('result-area').style.display = 'none';
+    el('result-area').style.display =
     el('pre-game').style.display = 'block';
     el('stats-panel').style.display = 'none';
     el('input-name').value = '';
