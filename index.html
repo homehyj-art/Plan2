@@ -23,206 +23,244 @@ body{
     min-height: 100vh;
     padding: 20px;
 }
-
-.wrap{ width:100%; max-width:1200px; }
-
-.header{
+.container{
+    background-color: rgba(13, 17, 23, 0.9);
+    border: 1px solid var(--gold);
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    padding: 30px;
+    width: 100%;
+    max-width: 700px;
     text-align: center;
-    margin-bottom: 20px;
-    animation: fadeInDown 1s ease-out;
+    backdrop-filter: blur(5px);
 }
-.title{
+h1{
     font-family: 'Cinzel', serif;
-    font-size: 3rem;
     color: var(--gold);
-    text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    font-size: 2.5em;
+    margin-bottom: 0.5em;
 }
-.subtitle{ font-family: 'Gowun Dodum'; opacity:0.9; font-size: 1.2rem; color: #f0f0f0; }
-
-.layout{ display:flex; gap:20px; }
-.left, .right{ transition: all 0.5s ease-out; }
-
-.left{
-    width:360px;
-    animation: fadeInLeft 1s ease-out;
-    position: relative;
-    z-index: 10;
+h2,h3{
+    color: var(--gold);
 }
-.right{
-    flex:1;
-    animation: fadeInRight 1s ease-out;
-    position: relative;
-    z-index: 5;
+h3{
+    font-size: 1.5em;
+    margin-top: 2em;
 }
-
-
-.card{
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(8px);
-    border-radius:16px;
-    padding: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    border: 1px solid rgba(255,215,102,0.15);
+.input-group{
+    margin-bottom: 20px;
 }
-
-.char-row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.input-group label{
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.input-group input{
+    width: calc(100% - 22px);
+    padding: 10px;
+    border: 1px solid var(--gold);
+    background-color: transparent;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 1em;
+}
+.input-group input::placeholder{
+    color: #aaa;
+}
+.char-selection{
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 25px 0;
+}
 .char{
-    padding:10px;
-    border-radius:10px;
-    background:rgba(0,0,0,0.3);
-    text-align:center;
-    cursor:pointer;
-    border: 2px solid transparent;
-    transition: all 0.3s ease;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 15px;
 }
-.char:hover{ transform:translateY(-5px); background:rgba(0,0,0,0.5); border-color: var(--gold); }
-.char .emoji{ font-size:44px; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); }
-.char .name{ color:var(--gold); font-weight:bold; }
-.char.selected{
-    background:rgba(200,154,75,0.3);
-    border-color: var(--gold);
+.char:hover, .char.selected{
     transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 0 15px rgba(200, 154, 75, 0.5);
+    box-shadow: 0 0 15px rgba(200, 154, 75, 0.7);
+    border: 1px solid var(--gold);
 }
-
-label{ display:block; color:var(--gold); font-weight:700; margin-bottom:6px; }
-input[type=text]{
-    width:100%;
-    padding:10px;
-    border-radius:8px;
-    border:1px solid rgba(255,215,102,0.2);
-    background:rgba(0,0,0,0.3);
-    color:#fff;
-    margin-bottom:10px;
-    font-family: 'Gowun Dodum', serif;
+.char img{
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid var(--gold);
+}
+.char p{
+    margin-top: 10px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
 }
 .btn{
-    display:inline-flex;
-    gap:8px;
-    align-items:center;
-    justify-content:center;
-    padding:12px 16px;
-    border-radius:10px;
-    border:none;
-    cursor:pointer;
-    background:linear-gradient(145deg, #b38645, #835e2c);
-    color:#fff;
-    font-weight:bold;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-    width: 100%;
-    font-family: 'Gowun Dodum', serif;
-    font-size: 1rem;
-    transition: all 0.2s ease;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 8px;
+    background: var(--gold);
+    color: var(--brown-text);
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
-.btn:hover {
-    transform: scale(1.02);
+.btn:hover:not(:disabled){
+    background-color: #e2b767;
+    transform: translateY(-2px);
 }
-.btn:disabled {
-    background: #555;
+.btn:disabled{
+    background-color: #7a6f62;
     cursor: not-allowed;
     opacity: 0.6;
-    transform: scale(1);
-    box-shadow: none;
 }
-
-#game-card {
-    background: linear-gradient(150deg, #f5eadd 0%, #e8d9c2 100%);
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
-    color: var(--brown-text);
-    padding: 50px 60px;
-    min-height: 550px;
-    position: relative;
-    border-radius: 8px;
+.quest-box{
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid var(--gold);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: left;
 }
-.quest-header { text-align: center; margin-bottom: 20px; }
-.quest-header h3 { font-family: 'Cinzel', serif; color: #6a4a2a; margin: 0; font-size: 1.5rem;}
-.quest-text { font-size:1.2rem; line-height:1.8; min-height: 100px; }
-.options{ display:grid; grid-template-columns:1fr; gap:12px; margin-top:20px; }
+.quest-box h4{
+    margin:0 0 10px 0;
+    color: var(--gold);
+}
 .option{
-    padding:12px;
-    border-radius:10px;
-    background:rgba(189, 168, 133, 0.3);
-    cursor:pointer;
-    border:1px solid rgba(112, 83, 48, 0.3);
-    transition: all .2s ease;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(200, 154, 75, 0.5);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    text-align: left;
 }
-.option:hover{ transform: scale(1.03); background:rgba(189, 168, 133, 0.5); border-color: var(--brown-text); }
-.option .label{ font-weight:bold; }
+.option:hover{
+    background-color: rgba(255,255,255,0.2);
+    transform: translateX(5px);
+}
+.option .label{
+    font-weight: bold;
+    color: #fff;
+}
+#stats-panel{
+    margin-top: 20px;
+    padding: 15px;
+    border-top: 1px solid var(--gold);
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    text-align: left;
+}
+.stat{
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid var(--gold);
+    border-radius: 5px;
+    padding: 10px;
+}
+.stat .bar{
+    background-color: #444;
+    border-radius: 3px;
+    height: 10px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+.stat .bar-inner{
+    height: 100%;
+    transition: width 0.5s ease-in-out;
+}
+#result-area{
+    display: none;
+    padding: 30px;
+}
+#result-area h3{
+    font-size: 1.8em;
+    margin-bottom: 0.5em;
+}
+#result-area p{
+    font-size: 1.2em;
+    line-height: 1.6;
+}
+.btn-restart{
+    margin-top: 20px;
+}
 
-.stats-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:12px; color: #fff;}
-.stat{ background:rgba(0,0,0,0.3); padding:8px; border-radius:8px; text-align:center; }
-.bar{ height:10px; background:rgba(255,255,255,0.1); border-radius:6px; margin-top:8px; overflow:hidden; }
-.bar-inner{ height:100%; background:linear-gradient(90deg,var(--gold),#e6b873); width:0%; transition:width .6s; }
-
-.result-content { color: var(--brown-text); text-align: center; }
-.result-content h3 { font-family: 'Cinzel', serif; color: #6a4a2a; }
-
-@keyframes fadeInDown { 0% { opacity:0; transform: translateY(-30px); } 100% { opacity:1; transform: translateY(0); } }
-@keyframes fadeInLeft { 0% { opacity:0; transform: translateX(-50px); } 100% { opacity:1; transform: translateX(0); } }
-@keyframes fadeInRight { 0% { opacity:0; transform: translateX(50px); } 100% { opacity:1; transform: translateX(0); } }
-
-@media(max-width:900px){ .layout{flex-direction:column} .left{width:100%} }
+@media (max-width: 600px) {
+    .container{ padding: 20px; }
+    h1{ font-size: 2em; }
+    .char img{ width: 80px; height: 80px; }
+    .char-selection{ gap: 10px; }
+    #stats-panel{ grid-template-columns: 1fr; }
+}
 </style>
+<audio id="bgm" src="https://cdn.pixabay.com/download/audio/2022/02/10/audio_f839611b84.mp3" loop></audio>
+<audio id="sfx-turn" src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_fdb9c687ab.mp3"></audio>
 </head>
 <body>
 
-<audio id="bgm" src="https://cdn.pixabay.com/audio/2022/08/04/audio_2dde649a33.mp3" loop></audio>
-<audio id="sfx-turn" src="https://cdn.pixabay.com/audio/2022/03/15/audio_731c045b61.mp3"></audio>
-
-<div class="wrap">
-  <div class="header">
-    <div class="title">Ancient Calling</div>
-    <div class="subtitle">나의 다중지능을 찾아 떠나는 모험</div>
-  </div>
-
-  <div class="layout">
-    <div class="left">
-      <div class="card">
-        <label>모험가 이름</label>
-        <input id="input-name" type="text" placeholder="예: 김민준" />
-        <label>소속 (반)</label>
-        <input id="input-class" type="text" placeholder="예: 1학년 3반" />
-        <label>여정을 함께할 동료</label>
-        <div id="char-row" class="char-row">
-          <div class="char" data-id="prince"><div class="emoji">🤴</div><div class="name">용감한 왕자</div></div>
-          <div class="char" data-id="princess"><div class="emoji">👸</div><div class="name">지혜로운 공주</div></div>
-          <div class="char" data-id="warrior"><div class="emoji">⚔️</div><div class="name">강인한 전사</div></div>
-          <div class="char" data-id="wizard"><div class="emoji">🔮</div><div class="name">신비한 마법사</div></div>
+<div class="container">
+    <div id="pre-game">
+        <h1>📜 다중지능 탐험: 고대의 부름</h1>
+        <h2>진정한 나를 찾아 떠나는 모험</h2>
+        <p>고대 세계로의 여정을 시작하려 합니다. 이름과 반 번호를 입력하고, 당신의 내면과 가장 닮은 동반자를 선택하세요. 당신의 선택이 모험의 길을 결정할 것입니다.</p>
+        <div class="input-group">
+            <label for="input-name">이름</label>
+            <input type="text" id="input-name" placeholder="이름을 입력하세요">
         </div>
-        <div style="margin-top:20px;">
-          <button id="btn-start" class="btn" disabled>▶ 모험 시작하기</button>
+        <div class="input-group">
+            <label for="input-class">반 번호</label>
+            <input type="text" id="input-class" placeholder="반 번호를 입력하세요">
         </div>
-      </div>
-
-      <div id="stats-panel" class="card" style="margin-top:12px; display:none;">
-         <div id="stats" class="stats-grid"></div>
-      </div>
+        <h3>⭐ 내면의 동반자 선택하기</h3>
+        <div class="char-selection">
+            <div class="char" data-id="prince">
+                <img src="https://cdn.pixabay.com/photo/2016/11/27/15/21/prince-1863584_1280.png" alt="Prince">
+                <p>현명한 왕자</p>
+            </div>
+            <div class="char" data-id="princess">
+                <img src="https://cdn.pixabay.com/photo/2017/04/01/21/32/princess-2194600_1280.png" alt="Princess">
+                <p>지혜로운 공주</p>
+            </div>
+            <div class="char" data-id="warrior">
+                <img src="https://cdn.pixabay.com/photo/2019/12/03/05/20/warrior-4669049_1280.png" alt="Warrior">
+                <p>용감한 용사</p>
+            </div>
+            <div class="char" data-id="wizard">
+                <img src="https://cdn.pixabay.com/photo/2018/12/10/18/34/wizard-3868018_1280.png" alt="Wizard">
+                <p>신비한 마법사</p>
+            </div>
+        </div>
+        <button id="btn-start" class="btn" disabled>▶ 모험 시작하기</button>
     </div>
 
-    <div class="right">
-      <div id="game-card" class="card">
-        <div id="pre-game">
-          <div style="text-align:center; padding-top: 80px;">
-            <h3 style="font-family:'Cinzel', serif; color: var(--brown-text);">📜 모험의 서막</h3>
-            <p style="font-size: 1.1rem; line-height: 1.8;">이름과 소속을 적고, 여정을 함께할 동료를 선택하세요.<br>당신의 선택이 모여 미래의 길을 밝혀줄 것입니다.<br>이제, 고대의 부름에 응답할 시간입니다.</p>
-          </div>
+    <div id="game-area" style="display: none;">
+        <div class="quest-box">
+            <h4 id="quest-title">퀘스트 제목</h4>
+            <p id="quest-text">퀘스트 내용</p>
         </div>
-
-        <div id="game-area" style="display:none">
-          <div class="quest-header">
-            <h3 id="quest-title"></h3>
-          </div>
-          <div id="quest-text" class="quest-text"></div>
-          <div id="options" class="options"></div>
-        </div>
-        
-        <div id="result-area" style="display:none; padding-top: 50px;">
-          <div class="result-content" id="result-content"></div>
-          <button id="btn-restart" class="btn" style="max-width:300px; margin: 20px auto 0;">🔄 새로운 모험 시작하기</button>
-        </div>
-      </div>
+        <div id="options">
+            </div>
     </div>
-  </div>
+    
+    <div id="stats-panel" style="display: none;">
+        <h3>📊 나의 지능 현황</h3>
+        <div id="stats">
+            </div>
+    </div>
+    
+    <div id="result-area">
+        <div id="result-content">
+            </div>
+        <button id="btn-restart" class="btn btn-restart">↩ 다시 시작하기</button>
+    </div>
 </div>
 
 <script>
@@ -848,3 +886,5 @@ document.querySelectorAll('.char').forEach(char => {
 el('btn-start').addEventListener('click', startGame);
 el('btn-restart').addEventListener('click', restartGame);
 </script>
+</body>
+</html>
