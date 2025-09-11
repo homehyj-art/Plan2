@@ -225,6 +225,28 @@ input[type=text]{
 </div>
 
 <script>
+// DOM 요소 가져오기
+const el = id => document.getElementById(id);
+
+// 게임 변수
+let player = {
+    name: '',
+    class: '',
+    companion: null
+};
+let scores = {
+    linguistic: 0,
+    logical: 0,
+    spatial: 0,
+    bodily: 0,
+    musical: 0,
+    interpersonal: 0,
+    intrapersonal: 0,
+    naturalist: 0
+};
+let currentQuestIndex = 0;
+let questLine = null;
+
 // 사운드 객체
 const sounds = {
     bgm: document.getElementById('bgm'),
@@ -487,397 +509,343 @@ const quests = {
     q("나의 지혜", "마지막으로, 당신의 지혜를 한 문장으로 남긴다면?",
       opt('📜 "서로의 이야기에 귀 기울일 때, 세상은 더 아름다운 음악이 됩니다."',{interpersonal:14, linguistic:8}),
       opt('🧘‍ "가장 깊은 침묵 속에서 가장 위대한 지혜를 발견할 수 있습니다."',{intrapersonal:16}),
-      opt('🎵 "세상의 모든 소리는 저마다의 의미를 가진 아름다운 노래입니다."',{musical:14}),
-      opt('🌸 "한 송이 들꽃에서 우주를 볼 수 있을 때, 당신은 모든 것을 가진 사람입니다."',{naturalist:14})
+      opt('🎶 "세상을 변화시키는 것은 거대한 힘이 아닌, 작은 화음의 조화입니다."',{musical:16, logical:6}),
+      opt('🌎 "우리가 자연의 일부임을 깨달을 때, 진정한 자유를 얻을 것입니다."',{naturalist:16, bodily:6})
     )
   ],
 
   // Warrior Questline (20 Quests)
   warrior: [
-    q("불타는 마을", "평화롭던 산골 마을이 원인 모를 화염에 휩싸였다. 비명과 연기 속에서, 당신은 본능적으로 검을 쥐었다. 무엇을 가장 먼저 해야 하는가?",
-      opt('🔥 사람들을 안전한 강가로 신속히 이끌며 대피시킨다.',{bodily:16,interpersonal:8}),
-      opt('🚒 불길이 번지는 방향과 속도를 분석하여 효과적인 진압 계획을 세운다.',{logical:12}),
-      opt('🏡 무너지는 집에서 미처 빠져나오지 못한 아이를 구하기 위해 뛰어든다.',{bodily:14, intrapersonal: 6}),
-      opt('💧 주변의 나무를 베어 방화선을 만들고, 물을 길어 불을 끈다.',{naturalist:12,spatial:6})
+    q("전사의 맹세", "오래전 잃어버린 '명예의 검'을 찾아 왕국의 평화를 되찾는 여정에 올랐다. 검이 잠들어 있다는 '침묵의 고원'의 첫 번째 관문은 '돌의 미로'. 어떻게 미로를 통과할까?",
+      opt('🦶 돌의 벽에 기대어 촉감과 균형을 이용해 길을 찾는다.',{bodily:14, spatial:6}),
+      opt('🧠 미로의 전체 구조를 머릿속으로 그려내고, 논리적으로 최단 경로를 파악한다.',{logical:14, spatial:6}),
+      opt('🦅 가장 높은 바위에 올라 미로의 전체 지형을 파악한다.',{spatial:16}),
+      opt('🗣️ 미로를 먼저 통과한 사람의 흔적을 찾아, 그들이 남긴 암호나 메시지를 해독한다.',{linguistic:12})
     ),
-    q("전설의 검", "마을 장로는 '이 재앙을 막으려면, '용의 협곡'에 잠들어 있는 전설의 검이 필요하다'고 말한다. 협곡으로 가는 길은 험난하다. 어떻게 준비할까?",
-      opt('🗺️ 협곡의 지도를 입수하여, 가장 빠르고 안전한 경로를 계획한다.',{spatial:14, logical:6}),
-      opt('💪 며칠간 체력 훈련에 매진하여, 어떤 장애물도 넘을 수 있는 신체를 준비한다.',{bodily:16}),
-      opt('🤝 마을의 젊은이들을 모아 함께 훈련하고, 협동하여 협곡을 돌파할 팀을 만든다.',{interpersonal:14, bodily:6}),
-      opt('🧗‍ 암벽 등반이나 급류 타기 등, 협곡에서 마주칠 법한 기술들을 미리 연습한다.',{bodily:14, spatial:4})
+    q("야수와의 결투", "미로를 지나자, 길을 가로막는 거대한 야수를 만났다. 정면 승부를 피할 수 없다. 어떻게 야수를 제압할까?",
+      opt('💪 야수의 공격을 온몸으로 막아내며 힘으로 맞선다.',{bodily:16}),
+      opt('🧠 야수의 움직임을 분석하여 약점을 찾고, 치명적인 일격을 가한다.',{logical:14, bodily:6}),
+      opt('💬 야수에게 '이것은 너의 영역이 아니다'라고 외치며 기선 제압을 시도한다.',{linguistic:12, interpersonal:6}),
+      opt('🌿 주변의 독초를 이용하여 야수를 잠시 혼란에 빠뜨린다.',{naturalist:12})
     ),
-    q("흔들리는 다리", "협곡에 도착하니, 아슬아슬한 밧줄 다리만이 유일한 길이다. 다리는 금방이라도 끊어질 듯 낡았다. 어떻게 건널 것인가?",
-      opt('🏃‍ 한순간의 망설임도 없이, 가장 빠른 속도로 단숨에 다리를 건넌다.',{bodily:16}),
-      opt('⚖️ 다리의 구조적 약점을 파악하고, 무게 중심을 낮춰 가장 안정적인 자세로 건넌다.',{logical:12, bodily:6}),
-      opt('💨 바람의 방향과 주기를 이용하여, 다리가 가장 안정적인 순간을 노려 건넌다.',{naturalist:12, spatial:4}),
-      opt('🔗 나의 몸에 밧줄을 묶고 동료들이 반대편에서 잡아주게 하여, 안전을 확보하고 건넌다.',{interpersonal:12, logical:6})
+    q("고원의 폭풍", "정상으로 향하는 길목에서 거대한 모래 폭풍을 만났다. 시야가 전혀 보이지 않는다. 어떻게 전진할까?",
+      opt('🧭 몸의 감각에 집중해 발이 딛는 땅의 미세한 경사를 느끼며 방향을 잡는다.',{bodily:14, intrapersonal:6}),
+      opt('🎶 바람이 바위에 부딪히며 내는 소리의 변화를 듣고, 폭풍의 흐름을 예측한다.',{musical:12, spatial:4}),
+      opt('🤝 동료들과 끈으로 몸을 묶고, 서로의 손을 놓지 않고 전진한다.',{interpersonal:14}),
+      opt('⏳ 폭풍이 지나갈 때까지 가장 안전한 바위 뒤에 몸을 숨기고 기다린다.',{intrapersonal:12})
     ),
-    q("검이 꽂힌 바위", "마침내 전설의 검이 거대한 바위에 꽂혀있는 것을 발견했다. 검에는 고대 문자가 새겨져 있다. '오직 자격 있는 자만이 나를 들 수 있으리.'",
-      opt('💪 모든 힘을 끌어모아, 오직 근력만으로 검을 뽑아내려 시도한다.',{bodily:18}),
-      opt('🤔 '자격'이란 힘이 아닐 수도 있다. 잠시 검 앞에서 명상하며, 무엇이 필요한지 성찰한다.',{intrapersonal:14}),
-      opt('📜 검에 새겨진 고대 문자를 해독하여, 검을 뽑기 위한 조건을 알아낸다.',{linguistic:12, logical:6}),
-      opt(' leverage 주변의 튼튼한 나무와 덩굴을 이용해, 지렛대의 원리로 바위를 부순다.',{spatial:12, logical:6})
+    q("잃어버린 유적", "폭풍이 지난 후, 예상치 못했던 고대의 유적을 발견했다. 검에 대한 단서가 있을지도 모른다. 어떻게 유적을 탐사할까?",
+      opt('🖼️ 유적 벽에 그려진 그림과 상징들을 분석하여, 그 안에 담긴 이야기를 읽어낸다.',{linguistic:14, spatial:6}),
+      opt('⚙️ 유적 곳곳에 흩어진 복잡한 기계 장치들을 조합하여 비밀의 문을 연다.',{logical:14, bodily:4}),
+      opt('🚶 직접 유적의 모든 통로를 걸어보며 숨겨진 길을 찾아낸다.',{bodily:12, spatial:8}),
+      opt('🌿 유적 주변에만 자라는 특별한 이끼나 식물들을 관찰하여, 유적의 역사를 추정한다.',{naturalist:12})
     ),
-    q("용의 포효", "검을 뽑는 순간, 협곡을 찢는 듯한 용의 포효가 울려 퍼진다. 동굴 깊은 곳에서 거대한 용이 깨어났다. 동료들이 공포에 질려있다. 어떻게 할까?",
-      opt('🛡️ 가장 앞장서서 방패를 들고, '내 뒤에 있으면 안전하다!'고 외치며 동료들을 안심시킨다.',{bodily:14, interpersonal:8}),
-      opt('🤫 손짓으로 모두를 조용히 시키고, 용의 시야를 피해 숨을 수 있는 가장 가까운 은신처를 찾는다.',{spatial:14, naturalist:4}),
-      opt('🔥 '두려워마라, 우리가 바로 이 순간을 위해 왔다!'라며 동료들의 투지를 일깨우는 연설을 한다.',{linguistic:12, interpersonal:8}),
-      opt('🐉 '저것은 우리의 적이 아니다. 이 협곡의 수호자일 뿐.'이라며, 전투 없이 상황을 해결할 방법을 모색한다.',{intrapersonal:14, interpersonal:6})
+    q("심연의 동굴", "유적의 단서를 따라 '심연의 동굴'에 들어섰다. 칠흑 같은 어둠과 끝없는 침묵이 당신을 짓누른다. 어떻게 극복할까?",
+      opt('❤️ 동료들과 함께 '두려워하지 말자'는 긍정의 메시지를 서로 주고받는다.',{interpersonal:14}),
+      opt('🎵 어둠을 밝힐 작은 노래를 흥얼거려, 내면의 불안을 잠재운다.',{musical:12, intrapersonal:8}),
+      opt('🤝 보이지 않는 동료의 손을 잡고, 서로의 존재를 느끼며 전진한다.',{bodily:12, interpersonal:8}),
+      opt('🤔 '어둠이란 빛의 부재일 뿐'이라는 생각을 떠올리며, 마음을 평온하게 유지한다.',{intrapersonal:16})
     ),
-    q("용과의 대결", "결국 용과의 전투를 피할 수 없게 되었다. 거대한 불길을 뿜는 용의 약점은 어디일까?",
-      opt('🎯 용이 불을 뿜는 순간의 빈틈을 노려, 민첩하게 목 아래의 부드러운 비늘을 공격한다.',{bodily:16, spatial:6}),
-      opt('🌊 동굴 천장의 종유석을 무너뜨려 용의 움직임을 막고, 협곡의 강물로 유인하여 불을 무력화한다.',{logical:14, spatial:6}),
-      opt('🤝 동료들에게 각자의 역할을 분담시킨다. 한 팀이 유인하면, 다른 팀이 약점을 공격하는 협동 전술을 편다.',{interpersonal:14, bodily:6}),
-      opt('👁️ 용의 눈을 똑바로 마주한다. 힘으로 제압하는 것이 아니라, 꺾이지 않는 의지로 녀석을 굴복시킨다.',{intrapersonal:16})
+    q("숨겨진 함정", "동굴의 끝, '명예의 검'이 놓인 제단으로 향하는 길에 여러 개의 발판 함정이 나타났다. 안전한 길을 어떻게 찾을까?",
+      opt('🔎 발판의 미세한 색깔 차이나 흙의 굳기 등을 분석하여, 안전한 발판을 구분한다.',{logical:14, naturalist:6}),
+      opt('🤸 함정을 피하는 가장 효율적인 몸동작을 구상하고 실행한다.',{bodily:16}),
+      opt('💬 '함정을 설치한 자의 심리는 무엇이었을까?' 스스로에게 질문하며 의도를 파악한다.',{intrapersonal:12, logical:8}),
+      opt('🗺️ 바닥의 그림자를 이용하여, 함정이 설치된 위치를 시각적으로 추리한다.',{spatial:12})
     ),
-    q("상처 입은 동료", "치열한 전투 끝에 용을 물리쳤지만, 동료 한 명이 깊은 상처를 입었다. 응급처치가 시급하다.",
-      opt('🩹 즉시 갑옷을 찢어 지혈대를 만들고, 나의 물을 나누어주며 상처를 처치한다.',{bodily:16, interpersonal:4}),
-      opt('🌿 동굴 주변에서 지혈 효과가 있는 약초를 빠르게 찾아내어 상처에 바른다.',{naturalist:14, logical:4}),
-      opt('💬 '정신 차려, 여기서 죽게 두지 않아!'라며, 농담을 던지거나 계속 말을 걸어 의식을 유지시킨다.',{interpersonal:14, linguistic:6}),
-      opt('担 동료를 업고, 가장 빠르고 안전하게 마을로 돌아갈 길을 찾아낸다.',{spatial:12, bodily:8})
+    q("검의 주인을 시험하는 문제", "함정을 통과하자, 검을 지키는 수호자가 '이 세상의 모든 문제 중, 가장 어려운 문제는 무엇인가?'라고 묻는다. 당신의 답은?",
+      opt('💡 "세상의 모든 문제는 해결 가능하지만, 나 자신을 아는 것은 가장 어려운 문제입니다."', {intrapersonal:16}),
+      opt('🤝 "모든 백성이 서로를 이해하고 화합하는 것, 그것이 가장 어려운 문제입니다."', {interpersonal:16}),
+      opt('❓ "질문이 너무 추상적입니다. '어려움'의 기준을 명확히 정의해 주십시오."', {logical:14, linguistic:6}),
+      opt('🛡️ "가장 어려운 문제는, '포기'라는 단어 자체입니다. 전 결코 포기하지 않을 겁니다."', {bodily:14, intrapersonal:4})
     ),
-    q("마을의 영웅", "전설의 검을 들고 돌아온 당신을, 마을 사람들은 영웅으로 맞이한다. 하지만 당신을 시기하는 경쟁자가 나타나 대련을 신청한다. 어떻게 응할까?",
-      opt('⚔️ 그의 도전을 정정당당하게 받아들이고, 실력의 차이를 확실히 보여준다.',{bodily:16}),
-      opt('🤝 '우리가 싸울 이유는 없다. 그 힘을 합쳐 마을을 지키는 것이 어떤가?'라며 화해의 손을 내민다.',{interpersonal:16}),
-      opt('🧠 그의 검술 스타일을 미리 분석하여, 약점을 파고드는 전략적인 승리를 거둔다.',{logical:14}),
-      opt('🙏 '나는 누구와도 싸우고 싶지 않다.'라며, 그의 도전을 정중히 거절하고 나의 길을 간다.',{intrapersonal:14})
+    q("영혼의 대화", "수호자는 당신의 답에 만족하고 길을 비켜주었다. 이제 검에 손을 얹자, 검의 영혼이 속삭인다. '진정한 힘은 무엇인가?'",
+      opt('💪 "진정한 힘은 타인을 지키는 용기입니다."', {bodily:14, interpersonal:8}),
+      opt('✨ "진정한 힘은 보이지 않는 곳에서 피어나는 깨달음입니다."', {intrapersonal:16}),
+      opt('📜 "진정한 힘은 글과 말로 세상을 변화시키는 것입니다."', {linguistic:14, interpersonal:6}),
+      opt('💡 "진정한 힘은 복잡한 문제를 단순하게 만드는 논리입니다."', {logical:16})
     ),
-    q("왕국의 부름", "당신의 명성은 왕국 전체에 퍼져, 기사단장으로 스카우트된다. 기사단은 기강이 해이해진 상태다. 어떻게 바로잡을 것인가?",
-      opt('💪 누구보다 먼저 일어나 가장 늦게 잠들며, 가장 힘든 훈련을 소화하는 것으로 솔선수범한다.',{bodily:14, intrapersonal:6}),
-      opt('📖 기사단의 오랜 역사와 명예로운 전투 기록들을 들려주며, 그들의 자부심을 일깨운다.',{linguistic:12, interpersonal:8}),
-      opt('🎯 실전과 같은 모의 전투 훈련을 도입하여, 단원들의 전술적 능력을 끌어올린다.',{logical:14, spatial:6}),
-      opt('🍻 훈련 후에는 단원들과 함께 식사하며, 그들의 개인적인 고민을 들어주는 리더가 된다.',{interpersonal:16})
+    q("돌아온 검", "검은 당신의 손에 빛을 되찾았고, 당신은 영웅이 되어 왕국에 돌아왔다. 사람들은 환호하며 당신에게 축제를 열어주려 한다. 당신의 선택은?",
+      opt('⚔️ 축제보다 더 중요한 것은 왕국의 안보라며, 즉시 병사들을 훈련시킨다.',{bodily:16, logical:6}),
+      opt('😊 백성들과 함께 축제를 즐기며, 그들의 기쁨을 함께 나눈다.',{interpersonal:16}),
+      opt('📜 '영웅은 혼자가 아니다'라는 연설로 백성들의 화합을 강조한다.',{linguistic:14, interpersonal:6}),
+      opt('🧘‍ 축제 대신, 조용한 곳에서 나의 다음 여정이 어디로 향해야 할지 고민한다.',{intrapersonal:14})
     ),
-    q("적군의 침공", "이웃 나라의 대규모 군대가 국경을 넘어 침공해왔다. 아군의 수는 적다. 어떤 전략으로 맞서 싸울 것인가?",
-      opt('⛰️ 좁은 협곡이나 숲 같은 지형적 이점을 활용하여, 적의 대군을 소규모로 분산시켜 격파한다.',{spatial:14, naturalist:6}),
-      opt('🔥 최정예 돌격대를 이끌고 적의 지휘관을 직접 노려, 적군의 지휘 체계를 무너뜨린다.',{bodily:16, logical:6}),
-      opt('🗣️ 적군에게 거짓 정보를 흘려 혼란에 빠뜨리고, 함정을 파서 유인한다.',{linguistic:12, logical:8}),
-      opt('🛡️ 무리하게 공격하기보다, 견고한 방어선을 구축하고 적이 지쳐 물러날 때까지 버틴다.',{intrapersonal:14, logical:6})
+    q("왕국의 재건", "전쟁으로 황폐해진 왕국을 재건해야 한다. 무엇부터 시작할까?",
+      opt('🛠️ 가장 무너진 건물부터 직접 망치를 들고 복구 작업을 시작한다.', {bodily:14, interpersonal:8}),
+      opt('🗺️ 새로운 도시 계획을 세워, 더 효율적이고 아름다운 도시를 설계한다.', {spatial:14, logical:6}),
+      opt('💬 백성들과 회의를 열어, 그들이 가장 원하는 것이 무엇인지 직접 묻는다.', {interpersonal:16, linguistic:6}),
+      opt('🌱 무너진 숲과 농장을 되살리기 위해, 나무를 심고 토양을 복구한다.', {naturalist:14})
     ),
-    q("전쟁 포로", "전투에서 승리했지만, 수많은 적군을 포로로 잡았다. 그들을 어떻게 처리할 것인가?",
-      opt('❤️ 그들을 죄인으로 대하지 않고, 부상자를 치료해주며 인도적으로 대우한다.',{interpersonal:16}),
-      opt('⚖️ 포로들을 심문하여 적군의 추가적인 정보를 얻어내고, 전후 협상 카드로 활용한다.',{logical:14, linguistic:6}),
-      opt('🛠️ 그들에게 무기 대신 농기구를 쥐어주고, 전쟁으로 파괴된 지역을 복구하는 일에 참여시킨다.',{interpersonal:12, bodily:8}),
-      opt('🤔 포로 문제를 어떻게 처리하는 것이 장기적으로 왕국에 이익이 될지, 여러 가능성을 따져본다.',{intrapersonal:14, logical:6})
+    q("새로운 검의 전설", "당신은 새로운 '명예의 검'을 만들기로 했다. 어떤 검을 만들고 싶은가?",
+      opt('🛡️ 어떤 공격도 막아내는 견고한 방패 같은 검.', {bodily:16, logical:6}),
+      opt('🗣️ 한 번 휘두르면 백성들에게 용기를 주는 말을 들려주는 검.', {linguistic:14, musical:6}),
+      opt('🗺️ 검집에서 꺼내면 왕국의 지형이 빛으로 나타나는 검.', {spatial:16, logical:6}),
+      opt('🌿 검날에 풀이 자라나, 평화를 상징하는 검.', {naturalist:14, interpersonal:6})
     ),
-    q("왕의 의심", "당신의 명성이 왕의 권위를 위협한다고 생각한 일부 신하들이 당신을 모함한다. 왕마저 당신을 의심하기 시작했다. 어떻게 할 것인가?",
-      opt('💬 왕을 직접 찾아가, 한 치의 거짓 없이 나의 충성심을 솔직하게 고백한다.',{interpersonal:14, linguistic:6}),
-      opt('🗡️ '나의 결백은 오직 검으로 증명하겠다.'라며, 나와 왕이 인정하는 최고의 기사와 결투를 신청한다.',{bodily:16}),
-      opt('📜 나를 모함한 신하들의 비리 증거를 은밀하게 수집하여, 진실을 밝혀낸다.',{logical:14}),
-      opt('🙏 모든 직위를 내려놓고, 조용히 고향으로 돌아가 때를 기다린다.',{intrapersonal:16})
+    q("외교적 만찬", "이웃 나라와의 긴장을 풀기 위한 만찬에 참석했다. 상대국의 군사 지도자가 당신을 도발한다. 어떻게 대처할까?",
+      opt('⚔️ 도발에 응하는 대신, 훈련으로 다져진 강인한 신체로 나의 결의를 보여준다.', {bodily:16}),
+      opt('🤝 미소로 답하며, '진정한 힘은 싸움이 아닌 대화에서 나온다'고 말한다.', {interpersonal:16}),
+      opt('⚖️ 그의 논리적 허점을 찾아, 말로 그를 압도한다.', {logical:14, linguistic:6}),
+      opt('🧘‍ 침묵을 유지하며, 그의 도발이 왜 당신에게 영향을 미치지 못하는지 깨닫게 한다.', {intrapersonal:14, interpersonal:6})
     ),
-    q("진정한 용기", "모든 의심을 풀어낸 당신에게 왕이 묻는다. '그대가 생각하는 진정한 용기란 무엇인가?'",
-      opt('💪 '두려움 속에서도 앞으로 나아가는 행동입니다.'',{bodily:16}),
-      opt('🤝 '나보다 약한 자를 위해 나 자신을 희생하는 것입니다.'',{interpersonal:16}),
-      opt('🧘‍ '나 자신의 부족함을 인정하고, 그것을 극복하려는 의지입니다.'',{intrapersonal:16}),
-      opt('🧠 '힘이 아닌, 지혜와 대화로 평화를 지켜내는 것입니다.'',{linguistic:12, logical:6})
+    q("대자연과의 조화", "숲에서 훈련을 하던 중, 갑자기 거대한 곰이 나타났다. 어떻게 대처하겠는가?",
+      opt('💪 곰과 정면으로 맞서 싸우기보다, 나무를 타고 올라가 곰을 피한다.', {bodily:14, logical:6}),
+      opt('🌲 곰의 습성을 이해하고, 위협을 느끼지 않도록 조용히 자리를 피한다.', {naturalist:16}),
+      opt('🗣️ 곰을 향해 위협적인 소리를 내며, 나의 영역임을 분명히 알린다.', {linguistic:12, bodily:8}),
+      opt('🧘‍ 곰에게서 눈을 떼지 않고, 나의 평온한 기운을 보내 곰을 진정시킨다.', {intrapersonal:14, interpersonal:6})
     ),
-    q("평화의 시대", "평화가 찾아온 후, 당신은 자신의 힘과 기술을 어디에 사용하고 싶은가?",
-      opt('🏫 후진을 양성하는 무술 학교를 세워, 나의 모든 경험을 전수한다.',{bodily:14, interpersonal:8}),
-      opt('🗺️ 아직 아무도 가보지 않은 미지의 땅을 탐험하며, 왕국의 지도를 완성한다.',{spatial:14, naturalist:6}),
-      opt('📖 전쟁의 참상과 평화의 소중함을 담은 회고록을 집필한다.',{linguistic:14}),
-      opt('🏋️‍ 스스로의 한계를 넘기 위한 개인적인 수련에 더욱 매진한다.',{intrapersonal:14, bodily:8})
+    q("왕국의 유산", "이제 당신은 왕국의 미래를 책임질 후계자를 찾아야 한다. 어떤 자질을 가장 중요하게 생각하는가?",
+      opt('🧠 위기 상황에서 침착하게 논리적 판단을 내리는 능력.', {logical:14}),
+      opt('❤️ 백성들의 마음을 깊이 이해하고 공감하는 능력.', {interpersonal:16}),
+      opt('🧘‍ 끊임없이 자신을 성찰하고, 스스로 답을 찾는 능력.', {intrapersonal:16}),
+      opt('⚔️ 어떤 어려움에도 굴하지 않고, 행동으로 증명하는 강인함.', {bodily:14})
     ),
-    q("대장간의 제안", "왕실 대장장이가 당신의 검을 개량해주겠다고 한다. 어떤 기능을 추가하고 싶은가?",
-      opt('💨 더 가볍고 빠르게 휘두를 수 있도록, 무게는 줄이고 강도는 높인다.',{bodily:16}),
-      opt('⚙️ 정교한 기계 장치를 추가하여, 창이나 방패 등 다양한 형태로 변형되게 한다.',{logical:14, spatial:6}),
-      opt('🦁 손잡이에 왕국의 상징인 사자 문양을 아름답게 새겨, 왕국의 자부심을 드러낸다.',{spatial:12, interpersonal:6}),
-      opt('🔊 특정 소리에 반응하여 검날이 빛을 발하는 마법적인 기능을 추가한다.',{musical:12})
+    q("마지막 훈련", "평화를 되찾은 왕국에서 당신은 마지막 훈련에 임한다. 어떤 훈련을 하겠는가?",
+      opt('🌳 숲 속에서 동물의 움직임을 관찰하고, 그들의 사냥 방식을 배운다.', {naturalist:14, bodily:8}),
+      opt('🎶 훈련 중에도 마음을 평온하게 유지하기 위한 명상 음악을 만든다.', {musical:14, intrapersonal:6}),
+      opt('🤝 젊은 병사들을 가르치며, 그들이 직접 문제를 해결하도록 돕는다.', {interpersonal:14, logical:8}),
+      opt('✍️ 나의 모든 훈련 과정을 책으로 기록하여, 후대에 남긴다.', {linguistic:14, intrapersonal:6})
     ),
-    q("아이들의 우상", "당신처럼 되고 싶어하는 아이들에게, 전사에게 가장 중요한 덕목은 무엇이라고 가르치겠는가?",
-      opt('❤️ '강한 힘보다, 그 힘을 올바르게 사용하는 따뜻한 마음이란다.'',{interpersonal:16}),
-      opt('🏋️‍ '어떤 어려움에도 굴하지 않는, 끊임없이 단련된 강인한 신체지.'',{bodily:16}),
-      opt('🧠 '흥분하지 않고, 언제나 냉철하게 상황을 판단하는 이성이란다.'',{logical:14}),
-      opt('🙏 '가장 강한 적은 바로 네 안에 있단다. 매일 자기 자신과 싸워 이기는 정신력이지.'',{intrapersonal:14})
+    q("전쟁 영웅의 밤", "당신을 기리는 연회가 열렸다. 수많은 사람이 당신에게 영웅담을 듣고 싶어 한다. 당신의 선택은?",
+      opt('🗣️ 화려한 언변으로 나의 무용담을 들려주며, 사람들의 사기를 높인다.',{linguistic:14, interpersonal:8}),
+      opt('❤️ '진정한 영웅은 무기 뒤에 숨어있지 않습니다'라며, 동료들의 이름을 한 명씩 부른다.',{interpersonal:16}),
+      opt('🤫 겸손한 미소로 '모든 것은 검이 이끌어주었다'며 공을 검에게 돌린다.',{intrapersonal:14}),
+      opt('🏋️ 연회장 한가운데서 멋진 검무를 선보여, 모두에게 즐거움을 선사한다.',{bodily:14, musical:6})
     ),
-    q("가장 험준한 산", "왕국에서 가장 높고 험준한 산을 오르게 되었다. 정상에 오르기 위해 가장 중요한 것은 무엇일까?",
-      opt('🧗 '지치지 않는 체력과, 어떤 암벽이라도 오를 수 있는 등반 기술.'',{bodily:16, spatial:6}),
-      opt('🌦️ 변화무쌍한 날씨와 기후를 예측하고, 그에 맞게 대비하는 지식.'',{naturalist:14, logical:6}),
-      opt('💪 '반드시 정상에 오르고야 말겠다'는, 자기 자신에 대한 강한 믿음.'',{intrapersonal:16}),
-      opt('🔗 '혼자서는 갈 수 없다. 서로의 밧줄이 되어주는 동료들과의 팀워크.'',{interpersonal:14})
-    ),
-    q("나의 동상", "당신의 업적을 기리는 동상이 세워진다고 한다. 어떤 모습으로 기억되고 싶은가?",
-      opt('⚔️ 검을 높이 들고 적을 향해 용맹하게 포효하는 모습.',{bodily:16}),
-      opt('😊 전쟁으로 집을 잃은 아이의 머리를 쓰다듬으며 위로하는 모습.',{interpersonal:14}),
-      opt('🗺️ 지도를 펼쳐들고, 아직 가보지 않은 먼 곳을 바라보는 모습.',{spatial:14, naturalist:6}),
-      opt('🙏 전투가 끝난 후, 쓰러진 동료와 적들을 위해 조용히 기도하는 모습.',{intrapersonal:16})
-    ),
-    q("진정한 '강함'", "모든 여정을 마친 당신. 마침내 깨달은 진정한 '강함'이란 무엇인가?",
-      opt('🛡️ '나보다 약한 존재를 지키기 위해 검을 드는 것.'',{interpersonal:16}),
-      opt('🔥 '내 안의 두려움과 마주하고, 그것을 극복해내는 것.'',{intrapersonal:16}),
-      opt('⚖️ '압도적인 힘과, 그 힘을 제어할 수 있는 지혜의 균형을 이루는 것.'',{logical:14, intrapersonal:4}),
-      opt('💖 '나의 신념을, 나의 삶과 행동으로 직접 증명해 보이는 것.'',{bodily:14, intrapersonal:6})
-    ),
-    q("검을 내려놓고", "모든 임무를 마친 당신. 이제 전설의 검을 어떻게 할 것인가?",
-      opt('🏛️ 왕궁 박물관에 기증하여, 후세 사람들이 평화의 소중함을 배우게 한다.',{linguistic:12, interpersonal:6}),
-      opt('🏞️ 원래 있던 용의 협곡, 그 바위에 다시 꽂아두고 자연의 품으로 돌려보낸다.',{naturalist:14, intrapersonal:6}),
-      opt('👨‍🏫 나의 뒤를 이을 가장 뛰어난 제자에게 물려준다.',{interpersonal:12, bodily:8}),
-      opt('🔥 대장간의 불 속에 던져 녹여버린다. 이제 더 이상 무기가 필요 없는 시대를 열겠다는 다짐과 함께.',{intrapersonal:16})
+    q("나의 흔적", "훗날, 당신의 무덤에는 어떤 비문이 새겨지길 바라는가?",
+      opt('🌳 '이 땅을 사랑하고 자연과 함께한 자 여기 잠들다.'',{naturalist:16}),
+      opt('🧠 '지혜와 용기로 왕국을 지켜낸 현명한 전사, 여기 잠들다.'',{logical:14, bodily:6}),
+      opt('💖 '오직 사랑으로 백성을 다스린 위대한 영혼, 여기 잠들다.'',{interpersonal:16, intrapersonal:6}),
+      opt('⚔️ '모든 난관을 행동으로 극복한 용기 있는 자, 여기 잠들다.'',{bodily:16})
     )
   ],
 
   // Wizard Questline (20 Quests)
   wizard: [
-    q("고대의 봉인", "스승님의 유품인 '지식의 탑' 입구가 기이한 문양의 봉인으로 막혀있다. 봉인은 미세한 마력으로 진동하고 있다. 이 수수께끼를 어떻게 풀 것인가?",
-      opt('📖 봉인에 새겨진 고대 룬 문자의 배열과 문법적 규칙을 분석한다.',{linguistic:14}),
-      opt('🧩 문양의 기하학적 패턴과 대칭성을 파악하여 논리적 해법을 찾는다.',{logical:16,spatial:6}),
-      opt('✋ 손을 대고 마력의 흐름과 진동을 직접 느끼며 구조의 약점을 찾는다.',{bodily:10,intrapersonal:8}),
-      opt('🍄 봉인 주변에만 자라는 특이한 이끼를 단서로, 자연 마법적 해법을 모색한다.',{naturalist:12})
+    q("마법사의 여정", "세상에 흩어진 '기억의 조각'을 모아 '진리의 마법서'를 복원하는 여정에 올랐다. 첫 번째 조각은 '꿈의 도서관'에 숨겨져 있다. 어떻게 그곳을 찾을까?",
+      opt('📜 오래된 마법 문헌을 연구하여, 도서관의 위치를 추론한다.',{linguistic:14, logical:6}),
+      opt('🌠 별자리를 읽어 신비한 지도를 만들고, 별의 인도에 따라 이동한다.',{spatial:14, naturalist:6}),
+      opt('💬 사람들의 꿈 이야기를 수집하고, 그 속에 반복되는 상징을 분석한다.',{interpersonal:12, logical:8}),
+      opt('🧘‍ 눈을 감고 명상하여, 도서관의 기운을 영적으로 감지한다.',{intrapersonal:16})
     ),
-    q("환영의 방", "첫 번째 방에 들어서자, 당신의 가장 큰 두려움(실패, 고독 등)이 거대한 환영으로 나타나 앞을 가로막는다. 어떻게 이 환영을 극복할까?",
-      opt('🤔 환영을 없애려 하지 않고, '이것 또한 나의 일부'임을 인정하고 받아들인다.',{intrapersonal:16}),
-      opt('🧠 환영이 마력으로 구성된 허상임을 간파하고, 그 논리적 허점을 찾아내 무력화시킨다.',{logical:14}),
-      opt('🗣️ 환영에게 말을 건다. '네가 왜 나타났는지 안다. 하지만 더 이상 너에게 지배당하지 않겠다.'',{linguistic:12, interpersonal:6}),
-      opt('💥 강력한 공격 마법을 사용하여, 환영을 정면으로 파괴하고 돌파한다.',{bodily:12})
+    q("꿈의 도서관", "도서관에 도착하자, 모든 책들이 비어있다. '진리를 알고 싶다면, 내면의 언어로 말하라'는 목소리가 들려온다. 어떻게 해야 책의 내용이 보일까?",
+      opt('🧠 마음속으로 내가 알고 싶은 지식을 떠올리자, 책에 글자가 나타난다.',{intrapersonal:16, linguistic:6}),
+      opt('✍️ 비어있는 책에 마법 주문을 적고, 글자가 나타나기를 기다린다.',{linguistic:14}),
+      opt('🤝 주변에 있는 사람들과 서로의 마음을 공유하며 대화한다.',{interpersonal:14}),
+      opt('🎶 조용히 책에 손을 얹고, 나의 마음을 진정시키는 명상 음악을 연주한다.',{musical:12, intrapersonal:8})
     ),
-    q("소리의 미궁", "다음 방은 수많은 길이 있는 미궁이다. 각 길목에서는 다른 높낮이의 소리가 울려 퍼진다. 올바른 길을 찾는 방법은?",
-      opt('🎶 모든 소리들을 듣고, 그 속에서 조화로운 화음을 이루는 하나의 멜로디를 찾아 따라간다.',{musical:16,logical:6}),
-      opt('🗺️ 미궁의 전체 구조를 머릿속에 그려보고, 가장 확률 높은 최단 경로를 계산해본다.',{spatial:14}),
-      opt('👂 소리의 울림과 잔향을 분석하여, 벽 너머가 막혀있는지 뚫려있는지를 판단한다.',{naturalist:12,spatial:6}),
-      opt('🤝 함께 온 동료가 있다면, 그의 의견을 먼저 물어보고 함께 결정한다.',{interpersonal:12})
+    q("마법사의 시험", "도서관의 책을 읽고 다음 장소로 이동하려 하자, 도서관 관리인이 '가장 복잡한 마법 공식'을 묻는다. 당신은 어떻게 대답할까?",
+      opt('💡 "세상의 모든 것은 논리로 설명됩니다. 가장 복잡한 공식은 '무한의 공식'입니다."', {logical:16}),
+      opt('💬 "가장 복잡한 공식은 바로 '사람의 마음을 이해하는 공식'입니다."', {interpersonal:16}),
+      opt('📜 "공식은 글로 쓰는 것이 아니라, 마음으로 이해하는 것입니다."', {linguistic:14, intrapersonal:6}),
+      opt('🌌 "모든 별과 행성의 궤도를 계산하는 공식, 우주의 공식입니다."', {spatial:14})
     ),
-    q("살아있는 서고", "거대한 서고에 도착했지만, 책들이 살아 움직이며 멋대로 날아다닌다. '지식의 정수'가 담긴 책을 찾아야 한다. 어떻게 찾을까?",
-      opt('📚 날아다니는 책들의 제목과 주제를 분석하여, 내가 찾는 책이 있을 만한 구역을 압축해나간다.',{linguistic:16}),
-      opt('⚖️ 책들의 움직임에서 일정한 패턴이나 규칙을 찾아내어, 다음 움직임을 예측한다.',{logical:14}),
-      opt('🕸️ 거미줄 마법을 펼쳐, 날아다니는 모든 책을 한번에 붙잡아 확인한다.',{bodily:12, spatial:8}),
-      opt('🧘‍ 눈을 감고 집중하여, 서고 전체에서 가장 강한 지식의 기운을 내뿜는 책을 감지한다.',{intrapersonal:14})
+    q("정령의 숲", "다음 조각은 정령의 숲에 있다. 숲의 모든 생명체가 당신의 움직임에 따라 색깔을 바꾼다. 어떻게 숲을 지나갈까?",
+      opt('🧘‍ 정령의 기운에 거스르지 않고, 조용히 내면의 평화를 유지하며 걷는다.',{intrapersonal:16, naturalist:6}),
+      opt('🎵 정령들의 합창에 맞춰 마법의 노래를 부르며 숲을 지나간다.',{musical:16}),
+      opt('🌿 숲의 식물들과 교감하여, 숲이 원하는 방향으로 움직인다.',{naturalist:14, interpersonal:8}),
+      opt('🏃 숲의 변화에 신경 쓰지 않고, 가장 빠르게 목적지를 향해 달려간다.',{bodily:12, logical:6})
     ),
-    q("탑의 흔들림", "책을 손에 넣는 순간, 지식의 균형이 깨지며 탑 전체가 격렬하게 흔들리기 시작했다. 탑이 무너지기 전에 탈출해야 한다!",
-      opt('📉 붕괴가 가장 느리게 진행될 것 같은, 구조적으로 안정적인 경로를 즉시 계산하여 대피한다.',{logical:14,spatial:8}),
-      opt('🛡️ 함께 온 동료가 있다면, 그에게 마법 보호막을 걸어주고 안전하게 탈출시킨다.',{interpersonal:14,intrapersonal:6}),
-      opt('🕊️ 비행 마법이나 감속 마법을 사용하여, 창문을 통해 안전하게 착지한다.',{bodily:12, spatial:6}),
-      opt('🍄 흔들림 속에서도, 탑의 벽 틈새에서 자라는 희귀한 버섯을 발견하고 채집하는 것을 잊지 않는다.',{naturalist:12})
+    q("바다의 노래", "숲을 지나자 거대한 바다가 나타났다. 바다의 가운데 섬에 '기억의 조각'이 보인다. 섬으로 가려면 '바다의 노래'를 불러야 한다. 어떤 노래를 부를까?",
+      opt('🎶 파도의 소리와 똑같은 음계를 가진 노래를 불러 바다의 길을 연다.',{musical:16}),
+      opt('❤️ 바다에게 '당신을 사랑합니다'라는 진심을 담아 노래를 부른다.',{interpersonal:14, intrapersonal:6}),
+      opt('📜 바다에 대한 전설이 담긴 고대 서사시를 낭송한다.',{linguistic:14}),
+      opt('🌊 바닷속 미생물들의 움직임을 관찰하고, 그들의 패턴에 맞는 노래를 만든다.',{naturalist:14, logical:6})
     ),
-    q("고대의 주문서", "탈출 후, 손에 넣은 책을 펼치자 절반 이상이 모르는 고대 언어로 쓰여있다. 어떻게 해독할 것인가?",
-      opt('💡 아는 단어와 모르는 단어의 관계, 문장의 구조를 통해 전체 의미를 퍼즐처럼 유추해나간다.',{linguistic:16}),
-      opt('🔢 각 기호의 등장 빈도를 통계적으로 분석하여, 알파벳과 대응시키는 암호 해독법을 사용한다.',{logical:14}),
-      opt('🎨 문자와 함께 그려진 삽화와 도표를 통해, 글의 내용을 시각적으로 이해한다.',{spatial:14}),
-      opt('🤔 '이 글을 쓴 고대의 마법사는 어떤 마음이었을까?'라며 저자의 입장에서 글을 읽어본다.',{intrapersonal:12, interpersonal:6})
+    q("마법사의 결투", "섬에 도착하자, 당신의 힘을 시험하려는 다른 마법사가 나타났다. 어떻게 결투를 벌이겠는가?",
+      opt('✨ 마법 주문을 외우기보다, 나의 마음속 깨달음으로 상대방을 압도한다.',{intrapersonal:16, logical:6}),
+      opt('💬 논리적인 마법 이론을 펼쳐, 상대방이 스스로 패배를 인정하게 만든다.',{logical:14, linguistic:8}),
+      opt('🤝 마법을 겨루는 대신, '왜 싸워야 하는가?'라며 대화를 시도한다.',{interpersonal:16}),
+      opt('🎨 거대한 환영 마법을 펼쳐, 상대방을 혼란에 빠뜨린다.',{spatial:14, musical:6})
     ),
-    q("이상한 실험장비", "주문서의 지시에 따라 도착한 지하 실험실. 하지만 스승님이 남긴 실험 장비가 마력을 제어하지 못하고 폭주하고 있다. 어떻게 안정시킬까?",
-      opt('🔬 장치의 구조를 빠르게 분석하여, 에너지 흐름을 차단할 수 있는 제어 장치를 찾는다.',{logical:14,spatial:6}),
-      opt('🕹️ 위험하지만, 직접 장치에 다가가 물리적인 힘으로 과열된 부품을 제거한다.',{bodily:12}),
-      opt('🌿 주변의 식물과 광석을 조합하여, 폭주하는 마력을 중화시키는 촉매제를 만든다.',{naturalist:12}),
-      opt('📖 스승님이 남긴 다른 연구 노트를 빠르게 훑어, 이 장비의 비상 정지 절차를 찾아낸다.',{linguistic:12})
+    q("거울의 미로", "결투에서 이기고 다음 조각을 얻자, 거울로 이루어진 미로가 나타났다. 미로의 모든 거울에는 나의 모습이 비친다. 어떻게 미로를 통과할까?",
+      opt('🧠 거울에 비친 나의 모습들을 분석하여, 올바른 거울을 찾아낸다.',{logical:14, spatial:8}),
+      opt('🧘‍ 거울에 비친 나의 모습에 흔들리지 않고, 내면의 소리에 집중해 길을 찾는다.',{intrapersonal:16, spatial:6}),
+      opt('🤸 거울의 허점을 찾아, 물리적으로 미로를 돌파한다.',{bodily:14, logical:4}),
+      opt('🤝 거울 속의 내가 말을 걸면, 그에게 '우리는 하나'라고 말하며 통로를 연다.',{interpersonal:14, intrapersonal:6})
     ),
-    q("별의 관측", "장치를 안정시키자, 천장이 열리며 밤하늘이 드러났다. '세 개의 별이 일직선이 되는 순간, 길이 열린다.'는 구절이 떠오른다. 어떻게 그 순간을 포착할까?",
-      opt('🔭 천체 망원경을 조작하여, 별들의 이동 속도와 궤도를 정확히 계산해낸다.',{logical:14,spatial:8}),
-      opt('✨ 별들의 움직임이 만들어내는 밤하늘의 거대한 선율, 그 조화 속에서 답을 찾는다.',{musical:12}),
-      opt('🤝 동료들과 함께 각자 다른 구역의 하늘을 관측하여, 더 효율적으로 별을 찾는다.',{interpersonal:12}),
-      opt('🙏 조용히 밤하늘을 바라보며, 별들이 스스로 길을 보여줄 때까지 기다린다.',{intrapersonal:14})
+    q("잃어버린 언어", "미로를 통과하자, 한 권의 낡은 책이 놓여있다. 책은 '잃어버린 언어'로 쓰여있어 해독이 불가능하다. 어떻게 이 언어를 해석할까?",
+      opt('📜 책에 쓰인 글자의 패턴과 상징을 분석하여, 언어의 규칙을 재구성한다.',{linguistic:16, logical:6}),
+      opt('🎵 책의 내용을 음율에 맞춰 읊어보며, 언어의 리듬을 통해 의미를 파악한다.',{musical:14, linguistic:6}),
+      opt('🧘‍ 책에 손을 얹고 명상하여, 저자의 의도를 영적으로 느낀다.',{intrapersonal:16}),
+      opt('🗣️ 주변 마을 사람들의 이야기를 수집하여, 잃어버린 언어의 흔적을 찾는다.',{interpersonal:12, linguistic:8})
     ),
-    q("마을의 전염병", "탑에서의 연구를 마치고 내려온 마을. 하지만 원인 모를 전염병이 퍼져 사람들이 고통받고 있다. 당신의 지식으로 어떻게 그들을 도울까?",
-      opt('🦠 환자들의 증상과 발병 지역의 환경적 특성을 종합하여, 병의 원인을 논리적으로 규명한다.',{logical:14,naturalist:8}),
-      opt('❤️ 마법으로 치료제를 만들기보다, 먼저 아픈 사람들의 손을 잡아주며 그들의 고통을 위로한다.',{interpersonal:16}),
-      opt('📜 고대 의학 서적들을 밤새워 연구하여, 이 병에 대한 치료법을 찾아낸다.',{linguistic:12,logical:8}),
-      opt('🌱 마을 주변의 모든 약초를 조사하고 조합하여, 가장 효과적인 치료제를 만들어낸다.',{naturalist:14})
+    q("마지막 조각", "드디어 마지막 조각을 찾았다. 이제 진리의 마법서를 완성해야 한다. 어떻게 조각들을 배열할까?",
+      opt('🧠 조각들의 크기와 모양을 논리적으로 조합하여, 완벽한 형태로 만든다.',{logical:16}),
+      opt('✨ 조각들이 내뿜는 미세한 마나의 흐름을 느끼고, 가장 조화로운 순서로 배열한다.',{intrapersonal:14, musical:8}),
+      opt('🤝 동료들과 함께 조각을 하나씩 들고, 서로의 의견을 모아 배열한다.',{interpersonal:14, spatial:6}),
+      opt('📜 각 조각에 새겨진 고대 마법 문양을 해독하여, 완성된 마법서의 내용으로 추론한다.',{linguistic:14})
     ),
-    q("지식의 끝", "치료제를 만들어 마을을 구한 당신. 하지만 세상에는 아직 모르는 것이 너무나 많다는 사실에 압도당한다. 이 순간, 당신의 감정은?",
-      opt('😊 '배움에는 끝이 없구나!' 앞으로의 탐구가 더욱 기대되며 즐거워진다.',{intrapersonal:16}),
-      opt('📚 지금까지 배운 모든 지식을 체계적으로 정리하고, 앞으로의 연구 계획을 세운다.',{logical:14}),
-      opt('💬 나의 지식은 혼자만의 것이 아니다. 다른 학자들과 교류하며 함께 성장하고 싶다.',{interpersonal:14, linguistic:6}),
-      opt('🌳 잠시 연구를 멈추고, 자연 속을 거닐며 머리를 식히고 새로운 영감을 얻는다.',{naturalist:12})
+    q("진리의 마법서", "마법서가 완성되자, 눈부신 빛을 내뿜으며 당신에게 말을 건다. '진정한 마법이란 무엇인가?'",
+      opt('💡 "진정한 마법은 세상을 움직이는 논리 그 자체입니다."', {logical:16}),
+      opt('💖 "진정한 마법은 상처받은 이의 마음을 치유하는 공감의 힘입니다."', {interpersonal:16}),
+      opt('🧘‍ "진정한 마법은 외부의 힘이 아닌, 내면의 깨달음입니다."', {intrapersonal:16}),
+      opt('✍️ "진정한 마법은 글과 말로 사람들에게 희망을 전하는 것입니다."', {linguistic:14, musical:6})
     ),
-    q("마법의 폭주", "새로운 마법을 실험하던 중, 당신의 마법이 의도치 않게 폭주하여 주변 숲의 일부를 파괴했다. 어떻게 책임지겠는가?",
-      opt('🌱 파괴된 숲이 원래의 모습으로 돌아올 때까지, 매일 씨앗을 심고 마법으로 성장을 돕는다.',{naturalist:14, bodily:6}),
-      opt('📊 이번 실수의 원인을 철저히 분석하고, '마법 사용 안전 수칙'을 집필하여 모두와 공유한다.',{logical:14, linguistic:6}),
-      opt('🙏 숲의 정령들에게 진심으로 사과하고, 그들의 용서를 구하는 의식을 치른다.',{interpersonal:12, intrapersonal:6}),
-      opt('🤔 왜 내가 마법을 제어하지 못했는지, 나의 마음속 불안이나 욕심은 없었는지 깊이 성찰한다.',{intrapersonal:16})
+    q("새로운 시대의 마법", "당신은 세상의 모든 마법사들을 이끄는 '대마법사'가 되었다. 어떤 마법을 가장 먼저 가르치고 싶은가?",
+      opt('🌱 자연의 힘을 빌어 황폐해진 땅을 되살리는 마법.', {naturalist:16, spatial:6}),
+      opt('🤝 서로 다른 마법을 쓰는 마법사들이 화합하는 '조화의 마법'.', {interpersonal:16, musical:6}),
+      opt('💡 무지한 이들의 마음속에 진실을 비추는 '깨달음의 마법'.', {intrapersonal:14, logical:8}),
+      opt('📜 잃어버린 고대 언어를 복원하고, 새로운 지식을 기록하는 마법.', {linguistic:14})
     ),
-    q("새로운 창조", "이제 당신은 세상에 없는 새로운 마법을 창조할 수 있다. 어떤 마법을 만들고 싶은가?",
-      opt('🎶 듣는 사람의 마음을 평화롭게 하고, 슬픔을 치유하는 '음악 마법'.',{musical:14, interpersonal:8}),
-      opt('🎨 상상하는 모든 것을 현실에 그려내는 '공간 창조 마법'.',{spatial:16}),
-      opt('🔍 세상의 모든 거짓을 간파해내는 '진실 탐지 마법'.',{logical:16, linguistic:6}),
-      opt('🦋 모든 동물, 식물과 대화할 수 있는 '자연 교감 마법'.',{naturalist:14, interpersonal:6})
+    q("도시의 재앙", "마을을 덮친 원인 모를 역병으로 백성들이 고통받는다. 어떻게 이 위기를 해결할까?",
+      opt('🔬 역병의 원인을 분석하고, 과학적 원리를 적용하여 치료법을 개발한다.', {logical:16, naturalist:6}),
+      opt('🤝 마법사들을 규합하여, 각자의 마법으로 병든 자를 치유하도록 돕는다.', {interpersonal:14, musical:8}),
+      opt('💬 '모두가 서로 도우면 이겨낼 수 있다'고 외치며 백성들의 용기를 북돋운다.', {linguistic:14, interpersonal:6}),
+      opt('🧘‍ 역병의 근본적인 원인을 찾기 위해, 내면의 목소리에 귀 기울인다.', {intrapersonal:14, logical:6})
     ),
-    q("마법학교 교장", "당신의 지혜를 높이 산 왕이, 당신에게 새로운 마법학교의 교장이 되어달라고 부탁한다. 당신의 교육 철학은 무엇인가?",
-      opt('💬 학생들이 자유롭게 질문하고 토론하며, 서로에게서 배우는 학교를 만들겠다.',{interpersonal:14, linguistic:8}),
-      opt('⚖️ 마법의 원리를 체계적으로 이해시키는, 엄격하고 논리적인 교육 과정을 만들겠다.',{logical:16}),
-      opt('💖 '가장 위대한 마법은 자기 자신을 이해하는 것'임을 가르치겠다.',{intrapersonal:16}),
-      opt('✋ 이론보다 실전! 학생들이 직접 마법을 체험하고 몸으로 익히는 교육을 하겠다.',{bodily:12})
+    q("마법사의 유산", "훗날 당신의 이야기는 어떤 마법사로 기억되길 바라는가?",
+      opt('📚 '세상 모든 지식의 수호자'로 기억되길.', {linguistic:14, logical:8}),
+      opt('🧙‍ '타인의 마음을 읽고 공감한 위대한 현자'로 기억되길.', {interpersonal:16}),
+      opt('🔮 '보이지 않는 진리를 탐구한 가장 위대한 영혼'으로 기억되길.', {intrapersonal:16}),
+      opt('🎨 '환상적인 마법으로 세상을 아름답게 만든 예술가'로 기억되길.', {spatial:14, musical:6})
     ),
-    q("가장 어려운 질문", "어느 날 한 제자가 묻는다. '스승님, 지식의 끝은 어디인가요?' 당신의 대답은?",
-      opt('📖 '지식에는 끝이 없단다. 그래서 삶이 즐거운 것이지. 중요한 것은 질문을 멈추지 않는 것!'',{intrapersonal:14, linguistic:8}),
-      opt('🔗 '모든 지식이 결국 하나로 연결되는 지점이 있단다. 우리는 그것을 '진리'라고 부르지.'',{logical:16}),
-      opt('🤝 '지식은 다른 사람과 나눌 때 비로소 '지혜'가 된단다. 그 나눔의 끝은 없지.'',{interpersonal:14}),
-      opt('🌍 '저기 저 작은 풀 한 포기의 비밀을 온전히 이해한다면, 그것이 곧 지식의 끝일 게다.'',{naturalist:14})
+    q("지구 반대편의 위기", "전령이 와서 지구 반대편의 이웃 왕국이 기아에 시달리고 있다고 전한다. 어떤 도움을 줄 수 있을까?",
+      opt('🌾 식량과 물을 순간이동시키는 마법 포털을 만들어 긴급 구호 물품을 보낸다.',{logical:14, spatial:8}),
+      opt('🗣️ 그들의 지도자에게 '모든 어려움은 함께 극복해야 한다'는 메시지를 담은 마법의 편지를 보낸다.',{linguistic:14, interpersonal:8}),
+      opt('🌱 메마른 땅을 비옥하게 바꾸는 마법을 직접 가르치고, 농경 기술을 전수한다.',{naturalist:16, logical:6}),
+      opt('🧘‍ 그들의 마음속에 절망 대신 희망을 심어주는 마법을 원격으로 사용한다.',{intrapersonal:16})
     ),
-    q("라이벌의 등장", "당신의 지식을 뛰어넘으려는, 재능 있는 젊은 라이벌 마법사가 나타나 사사건건 당신에게 도전한다. 어떻게 대응하겠는가?",
-      opt('🔥 그의 도전을 받아들이고, 모두가 보는 앞에서 압도적인 실력 차이를 보여준다.',{bodily:12, logical:8}),
-      opt('📄 그의 마법 이론을 분석하여, 논리적인 허점과 오류를 조목조목 지적해준다.',{logical:16}),
-      opt('☕ 그를 나의 연구실로 초대하여, 경쟁이 아닌 함께 세상을 발전시킬 연구를 제안한다.',{interpersonal:14}),
-      opt('😌 그의 도전에 일절 대응하지 않고, 내 연구에 더욱 깊이 몰두한다.',{intrapersonal:16})
+    q("마법사의 은퇴", "이제 당신은 마법사의 삶을 마치고 조용히 은퇴하려 한다. 어디로 가서 여생을 보내고 싶은가?",
+      opt('🏡 사람들의 삶에 가장 가까운 곳, 평범한 마을에서 아이들에게 이야기를 들려주며.',{interpersonal:14}),
+      opt('🏛️ 세상의 모든 책이 모인 거대한 도서관에서 지식을 탐구하며.',{linguistic:14, logical:6}),
+      opt('🌲 아무도 찾지 않는 깊은 숲 속, 자연과 교감하며.',{naturalist:16}),
+      opt('🌌 밤하늘의 별이 가장 잘 보이는 높은 산 위, 우주의 진리를 관찰하며.',{spatial:14, intrapersonal:6})
     ),
-    q("고대의 유물", "왕실 박물관의 고대 유물이 파손되었다. 시공간을 다루는 위험한 유물이다. 어떻게 복원할 것인가?",
-      opt('📜 유물에 새겨진 고대어를 완벽하게 해독하여, 원래의 기능을 파악한다.',{linguistic:16}),
-      opt('🧩 흩어진 수백 개의 파편들을, 3차원 퍼즐을 맞추듯 원래의 형태로 완벽하게 재구성한다.',{spatial:14, bodily:6}),
-      opt('⚙️ 유물의 동력원과 에너지 흐름을 분석하여, 논리적으로 완벽하게 재작동시킨다.',{logical:16}),
-      opt('🙏 유물을 만든 고대 마법사의 마음을 상상하며, 깊은 존경심을 담아 복원 작업에 임한다.',{intrapersonal:14, interpersonal:6})
+    q("시간을 되돌리는 마법", "당신은 시간을 되돌리는 마법을 개발했다. 과거로 돌아가 한 가지를 바꿀 수 있다면, 무엇을 바꾸겠는가?",
+      opt('📜 세상의 모든 증오를 지우고, 사랑의 역사를 다시 쓴다.',{linguistic:16, interpersonal:8}),
+      opt('💡 모든 전쟁의 논리를 무효화하고, 평화의 논리만 남긴다.',{logical:16, intrapersonal:6}),
+      opt('💖 나와 당신의 첫 만남으로 돌아가, 더 좋은 인연을 만들고 싶다.',{interpersonal:16}),
+      opt('🌍 오염된 강과 숲을 원래대로 되돌려, 자연을 복원한다.',{naturalist:14, spatial:6})
     ),
-    q("가장 위대한 마법", "어린 지망생이 묻는다. '마법사님, 세상에서 가장 위대한 마법은 무엇인가요?'",
-      opt('💬 '타인의 마음을 움직이는 '공감'이란다. 어떤 공격 마법보다 강하지.'',{interpersonal:16}),
-      opt('🧠 '세상의 법칙을 이해하고 예측하는 '통찰'이란다. 미래를 볼 수 있게 하지.'',{logical:14}),
-      opt('💖 '나 자신을 사랑하고 믿는 '자기 확신'이란다. 모든 마법의 근원이 되지.'',{intrapersonal:16}),
-      opt('🌱 '죽은 땅에서 새싹을 틔우는 '생명'의 마법이란다. 신의 영역에 가장 가깝지.'',{naturalist:14})
+    q("마법의 노래", "수백 년에 한 번 피는 '진리의 꽃'이 당신을 위해 노래한다. 당신은 그 노래를 어떻게 기억할 것인가?",
+      opt('🎶 노래의 음계와 화음을 완벽하게 악보에 기록한다.',{musical:16, logical:6}),
+      opt('✍️ 노래의 가사를 해석하고, 시로 만들어 사람들에게 전한다.',{linguistic:14, interpersonal:8}),
+      opt('💖 노래가 전하는 감정을 내면에 깊이 새기고, 영혼의 일부로 만든다.',{intrapersonal:16}),
+      opt('🧘‍ 눈을 감고 노래의 진동을 온몸으로 느끼며, 자연과의 교감을 체험한다.',{naturalist:14})
     ),
-    q("마법으로 그린 그림", "오랜 연구 끝에, 마력으로 허공에 그림을 그리는 법을 터득했다. 당신의 첫 작품은 무엇인가?",
-      opt('✨ 반짝이는 별들의 움직임을 담은, 살아 움직이는 밤하늘의 천체도.',{spatial:14, logical:8}),
-      opt('🎶 아름다운 음악을 들었을 때 내 마음속에 그려지는 심상의 풍경화.',{musical:14, intrapersonal:6}),
-      opt('😊 지금까지 나의 여정을 함께해 준 소중한 동료들의 행복한 모습.',{interpersonal:14}),
-      opt('📖 세상의 모든 지식이 담긴, 거대한 생명수 나무의 모습.',{linguistic:12, naturalist:6})
-    ),
-    q("마지막 연구", "이제 세상의 모든 지식을 거의 섭렵했다. 마지막으로, 당신의 일생을 바쳐 도전하고 싶은 연구 분야는?",
-      opt('🗣️ 세상의 모든 언어를 하나로 통합하는, 새로운 '소통의 언어' 창조.',{linguistic:16}),
-      opt('⏳ 시간의 흐름을 거스르거나 멈추는, '시간 마법'의 근본 법칙 탐구.',{logical:16}),
-      opt('🌌 이 세상 너머, 다른 차원의 존재와 교신하는 '차원 마법' 연구.',{spatial:14, intrapersonal:6}),
-      opt('❤️ 마법으로도 만들어낼 수 없는, 인간의 '감정'에 대한 근본적인 탐구.',{interpersonal:14, intrapersonal:6})
-    ),
-    q("탑을 떠나며", "모든 지식을 후세에 전수한 당신. 이제 지식의 탑을 떠나려 한다. 마지막으로 탑에 남기고 싶은 메시지는?",
-      opt('✍️ '지식은 가두어 두면 썩는다. 끊임없이 나누고 질문하라.'',{linguistic:14, interpersonal:8}),
-      opt('⚖️ '위대한 힘에는 위대한 책임이 따른다. 그 힘을 현명하게 사용하라.'',{intrapersonal:16}),
-      opt('🌍 '책 속에만 머물지 마라. 진정한 지혜는 세상과 자연 속에 있다.'',{naturalist:14}),
-      opt('➕ '정답은 하나가 아닐 수 있다. 언제나 새로운 가능성을 탐구하라.'',{logical:14})
+    q("가장 소중한 주문", "당신이 평생 가장 중요하게 생각하는 마법 주문이 있다면?",
+      opt('📜 "언어는 세상을 여는 열쇠니, 지혜를 구하는 자는 먼저 글을 읽으라."', {linguistic:16, logical:8}),
+      opt('💖 "마음이 향하는 곳에 길이 있으니, 자신의 소리를 따르라."', {intrapersonal:16}),
+      opt('🤝 "너와 내가 하나 될 때, 가장 위대한 마법이 펼쳐지리라."', {interpersonal:16}),
+      opt('✨ "진실을 보는 자는 어둠 속에서도 길을 잃지 않으리라."', {logical:14, intrapersonal:6})
     )
   ]
 };
 
-/* ====== 초기화 및 상태 ======*/
-const baseScores = {linguistic:50,logical:50,spatial:50,bodily:50,musical:50,interpersonal:50,intrapersonal:50,naturalist:50};
-let scores = {};
-let player = {name:'',clazz:'',charId:'',questIndex:0};
+const mapNames = {
+    linguistic: '언어',
+    logical: '논리-수학',
+    spatial: '공간',
+    bodily: '신체-운동',
+    musical: '음악',
+    interpersonal: '대인관계',
+    intrapersonal: '자기이해',
+    naturalist: '자연친화'
+};
 
-const el = id => document.getElementById(id);
 
-const nameInput = el('input-name');
-const classInput = el('input-class');
-const startButton = el('btn-start');
-
-function resetGame(){
-    scores = JSON.parse(JSON.stringify(baseScores));
-    player={name:'',clazz:'',charId:'',questIndex:0};
-    document.querySelectorAll('.char').forEach(c => c.classList.remove('selected'));
-    el('game-area').style.display = 'none';
-    el('result-area').style.display = 'none';
-    el('pre-game').style.display = 'block';
-    el('stats-panel').style.display = 'none';
-    nameInput.value = '';
-    classInput.value = '';
-    checkFormState();
+// 함수
+function checkStartButton() {
+    const name = el('input-name').value;
+    const classVal = el('input-class').value;
+    const companion = player.companion;
+    el('btn-start').disabled = !(name && classVal && companion);
 }
 
-function checkFormState() {
-    const name = nameInput.value.trim();
-    const clazz = classInput.value.trim();
-    if (name && clazz && player.charId) {
-        startButton.disabled = false;
+function selectCompanion(e) {
+    // 이미 선택된 동료의 'selected' 클래스 제거
+    const selectedChar = document.querySelector('.char.selected');
+    if (selectedChar) {
+        selectedChar.classList.remove('selected');
+    }
+
+    // 현재 클릭된 요소에 'selected' 클래스 추가
+    const charDiv = e.currentTarget;
+    charDiv.classList.add('selected');
+
+    // 선택된 동료 정보 저장
+    player.companion = charDiv.dataset.id;
+    checkStartButton();
+}
+
+function startGame() {
+    if (el('btn-start').disabled) return;
+
+    player.name = el('input-name').value;
+    player.class = el('input-class').value;
+    
+    // 게임 시작 시, 퀘스트 라인 설정
+    questLine = quests[player.companion];
+
+    // 게임 시작 시 UI 전환
+    el('pre-game').style.display = 'none';
+    el('game-area').style.display = 'block';
+    el('stats-panel').style.display = 'block';
+    el('stats-panel').style.opacity = 0;
+    setTimeout(()=>el('stats-panel').style.opacity = 1, 100);
+
+    // BGM 재생
+    sounds.bgm.play().catch(e => console.log("BGM 재생이 차단되었습니다."));
+
+    // 첫 퀘스트 표시
+    showQuest(questLine[currentQuestIndex]);
+}
+
+function selectOption(e) {
+    if (sounds.turn) sounds.turn.play();
+
+    const optionIndex = parseInt(e.currentTarget.dataset.index);
+    const effects = questLine[currentQuestIndex].options[optionIndex].e;
+    
+    // 스탯 업데이트
+    for (const key in effects) {
+        scores[key] = (scores[key] || 0) + effects[key];
+    }
+    
+    // 다음 퀘스트 진행
+    currentQuestIndex++;
+    if (currentQuestIndex < questLine.length) {
+        showQuest(questLine[currentQuestIndex]);
     } else {
-        startButton.disabled = true;
-    }
-}
-
-nameInput.addEventListener('input', checkFormState);
-classInput.addEventListener('input', checkFormState);
-
-document.querySelectorAll('.char').forEach(node=>{
-    node.addEventListener('click', () => {
-        document.querySelectorAll('.char').forEach(c=>c.classList.remove('selected'));
-        node.classList.add('selected');
-        player.charId = node.dataset.id;
-        checkFormState();
-    });
-});
-
-startButton.addEventListener('click', () => {
-  if (startButton.disabled) return; // 혹시 모를 상황에 대비
-
-  player.name = nameInput.value.trim();
-  player.clazz = classInput.value.trim();
-  player.questIndex = 0;
-  scores = JSON.parse(JSON.stringify(baseScores));
-  
-  el('pre-game').style.display = 'none';
-  el('game-area').style.display = 'block';
-  el('stats-panel').style.display = 'block';
-  renderQuest();
-});
-
-el('btn-restart').addEventListener('click', resetGame);
-
-/* 렌더링 및 진행 */
-function typeWriter(element, text, callback) {
-    let i = 0;
-    element.innerHTML = '';
-    function typing() {
-        if (i < text.length) {
-            element.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(typing, 30);
-        } else if (callback) {
-            callback();
-        }
-    }
-    typing();
-}
-
-function renderQuest(){
-    const list = quests[player.charId];
-    if(!list || player.questIndex >= list.length){
         showResult();
-        return;
     }
-
-    const q = list[player.questIndex];
-    const optRoot = el('options');
-    optRoot.innerHTML = '';
-    
-    el('quest-title').textContent = `📜 Chapter ${player.questIndex + 1}: ${q.title}`;
-    
-    typeWriter(el('quest-text'), q.text, () => {
-        q.options.forEach((o,i) => {
-            const div = document.createElement('div');
-            div.className = 'option';
-            div.innerHTML = `<div class="label">${o.t}</div>`;
-            div.onclick = () => {
-                sounds.turn.currentTime = 0;
-                sounds.turn.play();
-                optRoot.style.pointerEvents = 'none';
-                div.style.backgroundColor = 'rgba(112, 83, 48, 0.4)';
-                applyEffects(o.e);
-                player.questIndex++;
-                setTimeout(() => {
-                    renderQuest();
-                    optRoot.style.pointerEvents = 'auto';
-                }, 500);
-            };
-            optRoot.appendChild(div);
-        });
-    });
-    renderStats();
+    updateStats();
 }
 
-function applyEffects(e){
-    Object.keys(e).forEach(k => {
-        if(scores[k] !== undefined) scores[k] += e[k];
+function showQuest(quest) {
+    el('quest-title').textContent = quest.title;
+    el('quest-text').innerHTML = quest.text;
+    const optionsRoot = el('options');
+    optionsRoot.innerHTML = '';
+    
+    quest.options.forEach((opt, index) => {
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'option';
+        optionDiv.dataset.index = index;
+        optionDiv.innerHTML = `<span class="label"></span>${opt.t}`;
+        optionDiv.onclick = selectOption;
+        optionsRoot.appendChild(optionDiv);
     });
 }
 
-function renderStats(){
+function updateStats() {
     const root = el('stats');
     root.innerHTML = '';
-    const mapNames = {linguistic:'언어',logical:'논리',spatial:'공간',bodily:'신체',musical:'음악',interpersonal:'인간관계',intrapersonal:'자기성찰',naturalist:'자연친화'};
+    const mapNames = {linguistic:'언어',logical:'논리',spatial:'공간',bodily:'신체',musical:'음악',interpersonal:'대인관계',intrapersonal:'자기이해',naturalist:'자연친화'};
     Object.keys(scores).forEach(k => {
         const score = Math.min(100, Math.max(0, scores[k]));
         const box = document.createElement('div');
         box.className = 'stat';
         box.innerHTML = `
             <div style="font-weight:bold;color:var(--gold)">${mapNames[k]}</div>
-            <div class="bar"><div class="bar-inner" style="width:${score}%"></div></div>
+            <div class="bar"><div class="bar-inner" style="width:${score}%;background-color:var(--gold)"></div></div>
         `;
         root.appendChild(box);
     });
 }
 
-function showResult(){
+function showResult() {
     el('game-area').style.display = 'none';
     el('stats-panel').style.display = 'none';
     el('result-area').style.display = 'block';
@@ -889,17 +857,22 @@ function showResult(){
     
     const resultHTML = `
         <h3>📜 모험의 결과</h3>
-        <p><strong>${player.name}</strong>(${player.clazz}) 모험가님, 기나긴 여정이 끝났습니다.</p>
-        <p>당신의 선택은 다음과 같은 위대한 지능을 드러냈습니다.</p>
-        <h4 style="color: var(--gold);">🥇 1순위: ${mapNames[top1]}</h4>
-        <h4 style="color: #a4824a;">🥈 2순위: ${mapNames[top2]}</h4>
-        <p style="margin-top: 20px;">이 지능들은 당신의 특별한 재능입니다. 앞으로의 진정한 모험은 이제부터 시작입니다!</p>
+        <p><strong>${player.name}</strong>(${player.class})님은<br><strong>${mapNames[top1]}</strong>과 <strong>${mapNames[top2]}</strong>을(를) 기반으로 하는 능력이 뛰어납니다. 
+        <br>고대의 부름에 응답하여 당신의 잠재력을 발견했습니다!</p>
     `;
     el('result-content').innerHTML = resultHTML;
 }
 
-resetGame();
+function restartGame() {
+    location.reload();
+}
 
+// 이벤트 리스너
+el('btn-start').onclick = startGame;
+el('btn-restart').onclick = restartGame;
+el('input-name').oninput = checkStartButton;
+el('input-class').oninput = checkStartButton;
+document.querySelectorAll('.char').forEach(el => el.onclick = selectCompanion);
 </script>
 </body>
 </html>
