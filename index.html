@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>📜 다중지능 탐험: 고대의 부름 (버그 최종 수정판)</title>
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.pixabay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; media-src https://cdn.pixabay.com;">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Cinzel:wght@700&display=swap" rel="stylesheet">
 <style>
 :root{ --brown-text: #4a3a2a; --gold: #c89a4b; }
@@ -319,7 +320,7 @@ const quests = {
     q("왕의 시험", "마침내 왕 앞에 선 당신. 그는 시험하듯 묻는다. '백성의 행복과 왕국의 안정, 둘 중 하나만 택해야 한다면 무엇을 택하겠는가?' 당신의 답은?",
       opt('💬 '백성의 행복이 곧 왕국의 가장 튼튼한 기반입니다.'라고 답하며 구체적인 정책을 제시한다.',{interpersonal:16,linguistic:6}),
       opt('⚖️ '안정 없는 행복은 신기루와 같으니, 먼저 튼튼한 방벽을 쌓겠습니다.'라고 답한다.',{logical:14,bodily:6}),
-      opt('❓ '그 둘은 분리될 수 없습니다. 왜 그런 선택을 해야만 하는지 먼저 되묻겠습니다.'라고 답한다.',{intrapersonal:12,logical:8}),
+      opt('❓ '그 둘은 분리될 수 없습니다. 왜 그런 선택을 해야만 하는가?' 스스로 되묻는다.',{intrapersonal:12,logical:8}),
       opt('🎨 '교육과 예술을 통해 백성들의 마음을 풍요롭게 하는 것이 장기적인 안정의 길입니다.'라고 답한다.',{linguistic:12,musical:4})
     ),
     q("고대의 장치", "왕이 인정한 당신에게 마지막 장소의 지도가 주어진다. 그곳엔 복잡한 고대 장치가 잠들어 있다. 어떻게 작동시킬까?",
@@ -344,7 +345,7 @@ const quests = {
       opt('🗺️ 신전의 구조를 빠르게 파악하고, 가장 안전하고 효율적인 탈출로를 계획한다.',{spatial:14,logical:6}),
       opt('🤝 함께 온 동료들을 먼저 챙기고, 서로 도우며 질서정연하게 대피시킨다.',{interpersonal:16}),
       opt('🏃 떨어지는 석상과 장애물들을 민첩하게 피하며, 가장 빠르게 출구를 향해 달린다.',{bodily:14}),
-      opt('🧘‍ 무너지는 상황 속에서도, 두려움에 휩싸이지 않고 침착하게 최선의 판단을 내린다.',{intrapersonal:14})
+      opt('🧘‍ 무너지는 상황 속에서도, 두려움에 휩쓸리지 않고 침착하게 최선의 판단을 내린다.',{intrapersonal:14})
     ),
     q("왕국으로의 귀환", "무사히 귀환한 당신. 백성들은 당신을 새로운 영웅으로 환호한다. 그들의 신뢰에 어떻게 보답하겠는가?",
       opt('🎤 광장에 서서 나의 모험 이야기를 들려주며, 백성들에게 희망과 용기를 불어넣는다.',{linguistic:14,interpersonal:6}),
