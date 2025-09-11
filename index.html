@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>📜 다중지능 탐험: 고대의 부름 (버튼 오류 해결판)</title>
+<title>📜 다중지능 탐험: 고대의 부름 (버그 최종 수정판)</title>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Cinzel:wght@700&display=swap" rel="stylesheet">
 <style>
 :root{ --brown-text: #4a3a2a; --gold: #c89a4b; }
@@ -38,8 +38,22 @@ body{
 
 .layout{ display:flex; gap:20px; }
 .left, .right{ transition: all 0.5s ease-out; }
-.left{ width:360px; animation: fadeInLeft 1s ease-out; }
-.right{ flex:1; animation: fadeInRight 1s ease-out; }
+
+/* ✨✨✨ 버그 수정의 핵심 부분 ✨✨✨ */
+.left{
+    width:360px;
+    animation: fadeInLeft 1s ease-out;
+    position: relative; /* z-index 적용을 위해 position 속성 추가 */
+    z-index: 10;       /* right 영역보다 항상 위에 있도록 설정 */
+}
+.right{
+    flex:1;
+    animation: fadeInRight 1s ease-out;
+    position: relative;
+    z-index: 5;
+}
+/* ✨✨✨ 여기까지가 수정의 핵심입니다 ✨✨✨ */
+
 
 .card{
     background: rgba(0,0,0,0.6);
@@ -102,7 +116,6 @@ input[type=text]{
 .btn:hover {
     transform: scale(1.02);
 }
-/* ✨ 비활성화된 버튼 스타일 추가 */
 .btn:disabled {
     background: #555;
     cursor: not-allowed;
@@ -219,7 +232,6 @@ const sounds = {
 };
 sounds.bgm.volume = 0.2; // BGM 볼륨 조절
 
-// 게임 시작 시 BGM 재생 (사용자 인터랙션 후)
 document.body.addEventListener('click', () => {
     if (sounds.bgm.paused) {
         sounds.bgm.play().catch(e => console.log("BGM 자동재생이 차단되었습니다."));
@@ -238,7 +250,7 @@ const quests = {
       opt('📜 편지에 쓰인 단어들의 상징적 의미를 파고들어 분석한다.',{linguistic:14}),
       opt('🗺️ 편지에 남은 희미한 지도의 흔적을 따라 직접 현장으로 향한다.',{bodily:12,spatial:6}),
       opt('👥 편지를 마지막으로 만졌을 법한 왕궁의 오랜 신하를 찾아가 대화한다.',{interpersonal:12,logical:6}),
-      opt('🌿 편지지에서 희미하게 나는 풀 향기를 단서로, 특정 지역의 식생을 조사한다.',{naturalist:8,spatial:6})
+      opt('🌿 편지지에서 희미하게 나는 풀 향기를 단서로, 특정 지역의 식생를 조사한다.',{naturalist:8,spatial:6})
     ),
     q("시장의 현자", "시장에 도착하자, 한 노인이 당신을 알아보고 다가와 속삭였다. '왕께서 찾던 빛은 북쪽 숲의 심장, 가장 오래된 고목에서 나온다네.' 그의 말을 어떻게 받아들여야 할까?",
       opt('💬 노인의 이야기에 진심으로 감사하며, 숲에 대한 다른 전설은 없는지 묻는다.',{interpersonal:12,linguistic:6}),
@@ -736,7 +748,6 @@ let player = {name:'',clazz:'',charId:'',questIndex:0};
 
 const el = id => document.getElementById(id);
 
-// ✨ 버튼 활성화 로직을 위한 요소 미리 선택
 const nameInput = el('input-name');
 const classInput = el('input-class');
 const startButton = el('btn-start');
@@ -751,10 +762,9 @@ function resetGame(){
     el('stats-panel').style.display = 'none';
     nameInput.value = '';
     classInput.value = '';
-    checkFormState(); // ✨ 초기화 시 버튼 상태도 체크
+    checkFormState();
 }
 
-// ✨ 버튼 활성화/비활성화를 체크하는 함수
 function checkFormState() {
     const name = nameInput.value.trim();
     const clazz = classInput.value.trim();
@@ -765,23 +775,21 @@ function checkFormState() {
     }
 }
 
-/* ✨ 입력 필드에 이벤트 리스너 추가 */
 nameInput.addEventListener('input', checkFormState);
 classInput.addEventListener('input', checkFormState);
 
-/* 캐릭터 선택 */
 document.querySelectorAll('.char').forEach(node=>{
     node.addEventListener('click', () => {
         document.querySelectorAll('.char').forEach(c=>c.classList.remove('selected'));
         node.classList.add('selected');
         player.charId = node.dataset.id;
-        checkFormState(); // ✨ 캐릭터 선택 시에도 버튼 상태 체크
+        checkFormState();
     });
 });
 
-/* 시작 버튼 */
-el('btn-start').addEventListener('click', () => {
-  // 이제 버튼이 활성화된 상태에서만 클릭되므로, 기존의 복잡한 유효성 검사 alert가 필요 없습니다.
+startButton.addEventListener('click', () => {
+  if (startButton.disabled) return; // 혹시 모를 상황에 대비
+
   player.name = nameInput.value.trim();
   player.clazz = classInput.value.trim();
   player.questIndex = 0;
