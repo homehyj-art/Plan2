@@ -356,7 +356,7 @@ const quests = {
     ),
     q("어둠의 동굴", "전설을 따라가다 어둠과 습기로 가득 찬 동굴을 만났다. 동굴 안에는 길을 잃은 듯한 불빛들이 깜빡인다. 어떻게 동굴을 통과할까?",
       opt('💡 동굴의 지형과 불빛의 패턴을 분석하여, 안전한 길을 찾아낸다.',{logical:14,spatial:8}),
-      opt('✋ 동굴 벽을 손으로 직접 문질러, 발의 감각을 이용해 길을 찾는다.',{bodily:14,intrapersonal:6}),
+      opt('🖐️ 동굴 벽을 손으로 직접 문질러, 발의 감각을 이용해 길을 찾는다.',{bodily:14,intrapersonal:6}),
       opt('🔊 동굴에서 들려오는 메아리 소리의 방향을 분석하여, 출구를 짐작한다.',{musical:12}),
       opt('🔦 횃불을 밝혀 주변 환경을 밝히고, 어둠 속에 숨어 있는 위험을 찾아낸다.',{naturalist:12})
     ),
@@ -684,17 +684,19 @@ const quests = {
   ]
 };
 
-// 동료 선택 핸들러
-function handleCompanionSelection(event) {
-    const clickedChar = event.target.closest('.char');
-    if (!clickedChar) return;
-
-    // 선택 해제
+// 동료 선택 이벤트 핸들러
+function handleCompanionClick(event) {
+    // 모든 동료의 'selected' 클래스 제거
     document.querySelectorAll('.char').forEach(char => char.classList.remove('selected'));
-
-    // 선택 적용
+    
+    // 클릭된 동료에게 'selected' 클래스 추가
+    const clickedChar = event.currentTarget;
     clickedChar.classList.add('selected');
+
+    // player 객체에 선택된 동료 정보 저장
     player.companion = clickedChar.dataset.id;
+    
+    // 시작 버튼 상태 확인 함수 호출
     checkStartButton();
 }
 
@@ -861,7 +863,9 @@ document.addEventListener('DOMContentLoaded', () => {
     inputs.forEach(input => input.addEventListener('input', checkStartButton));
 
     // 동료 선택 이벤트 감지 (수정된 부분)
-    el('char-row').addEventListener('click', handleCompanionSelection);
+    document.querySelectorAll('.char').forEach(char => {
+        char.addEventListener('click', handleCompanionClick);
+    });
 
     // 시작 버튼 이벤트
     el('btn-start').addEventListener('click', startGame);
