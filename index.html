@@ -862,9 +862,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputs = [el('input-name'), el('input-class')];
     inputs.forEach(input => input.addEventListener('input', checkStartButton));
 
-    // 동료 선택 이벤트 감지 (수정된 부분)
-    document.querySelectorAll('.char').forEach(char => {
-        char.addEventListener('click', handleCompanionClick);
+    // 동료 선택 이벤트 위임 방식으로 수정
+    el('char-row').addEventListener('click', (event) => {
+        let clickedChar = event.target.closest('.char');
+        if (clickedChar) {
+            handleCompanionClick({ currentTarget: clickedChar });
+        }
     });
 
     // 시작 버튼 이벤트
