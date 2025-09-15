@@ -68,7 +68,6 @@ body{
 }
 .char:hover{ transform:translateY(-5px); background:rgba(0,0,0,0.5); border-color: var(--gold); }
 .char .emoji{ font-size:44px; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); transition: transform 0.3s ease; }
-.char .name{ color:var(--gold); font-weight:bold; }
 .char.selected{
     background:rgba(200,154,75,0.3);
     border-color: var(--gold);
@@ -862,12 +861,21 @@ function restartGame() {
 // 이벤트 리스너 추가
 document.addEventListener('DOMContentLoaded', () => {
     // 플레이어 정보 입력 감지
-    const inputs = [el('input-name'), el('input-class')];
-    inputs.forEach(input => input.addEventListener('input', checkStartButton));
+    el('input-name').addEventListener('input', checkStartButton);
+    el('input-class').addEventListener('input', checkStartButton);
 
-    // 동료 선택 이벤트 감지 (수정된 부분)
+    // 동료 선택 이벤트 감지
     document.querySelectorAll('.char').forEach(char => {
-        char.addEventListener('click', handleCompanionClick);
+        char.addEventListener('click', (event) => {
+            const clickedChar = event.currentTarget;
+            
+            document.querySelectorAll('.char').forEach(c => c.classList.remove('selected'));
+            
+            clickedChar.classList.add('selected');
+            
+            player.companion = clickedChar.dataset.id;
+            checkStartButton();
+        });
     });
 
     // 시작 버튼 이벤트
