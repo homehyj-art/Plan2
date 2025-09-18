@@ -67,15 +67,13 @@ body{
     transition: all 0.3s ease;
 }
 .char:hover{ transform:translateY(-5px); background:rgba(0,0,0,0.5); border-color: var(--gold); }
-.char .emoji{ font-size:44px; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); transition: transform 0.3s ease; }
+.char .emoji{ font-size:44px; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); }
+.char .name{ color:var(--gold); font-weight:bold; }
 .char.selected{
     background:rgba(200,154,75,0.3);
     border-color: var(--gold);
     transform: translateY(-5px) scale(1.05);
     box-shadow: 0 0 15px rgba(200, 154, 75, 0.5);
-}
-.char.selected .emoji {
-    transform: scale(1.2);
 }
 
 label{ display:block; color:var(--gold); font-weight:700; margin-bottom:6px; }
@@ -219,15 +217,128 @@ input[type=text]{
 </div>
 
 <script>
+
+// Prevent ReferenceError: define a safe placeholder for startGame that will be overwritten later.
+if (typeof window.startGame !== 'function') {
+  window.startGame = function(){ console.warn('startGame placeholder called before real definition.'); };
+}
+
+// 실제 startGame 함수 정의
+function startGame() {
+    // 플레이어 정보 수집
+    player.name = el("input-name").value.trim();
+    player.class = el("input-class").value.trim();
+    
+    if (!player.name || !player.class || !player.companion) {
+        alert("이름, 반, 동료를 모두 입력해주세요!");
+        return;
+    }
+
+    // UI 전환
+    el("pre-game").style.display = "none";   // 서막 숨김
+    el("game-area").style.display = "block"; // 퀘스트 영역 보임
+    el("stats-panel").style.display = "block";
+
+    // 게임 초기화
+    currentQuestIndex = 0;
+    questLine = quests[player.companion];
+    
+    // 첫 번째 퀘스트 표시
+    showQuest();
+}
+
+// 전역으로 노출
+window.startGame = startGame;
+
+
+function showQuest() {
+    const quest = questLine[currentQuestIndex];
+    if (!quest) {
+        console.error("퀘스트 데이터를 찾을 수 없습니다.");
+        return;
+    }
+
+    // 제목과 본문 출력
+    el("quest-title").textContent = quest.title;
+    el("quest-text").textContent = quest.text;
+
+    // 선택지 표시
+    const optionsContainer = el("options");
+    optionsContainer.innerHTML = ""; // 초기화
+
+    quest.options.forEach((opt) => {
+        const btn = document.createElement("div");
+        btn.className = "option";
+        btn.innerHTML = `<div class="label">${opt.t}</div>`;
+        btn.addEventListener("click", () => {
+            applyEffects(opt.e);
+            nextQuest();
+        });
+        optionsContainer.appendChild(btn);
+    });
+}
+
+function applyEffects(effects) {
+    for (let key in effects) {
+        if (scores.hasOwnProperty(key)) {
+            scores[key] += effects[key];
+        }
+    }
+    updateStats();
+}
+
+function updateStats() {
+    const statsEl = el("stats");
+    statsEl.innerHTML = "";
+    for (let key in scores) {
+        const value = scores[key];
+        const statDiv = document.createElement("div");
+        statDiv.className = "stat";
+        statDiv.innerHTML = `
+            <div>${mapNamesForStats[key]}</div>
+            <div class="bar"><div class="bar-inner" style="width:${value}%"></div></div>
+        `;
+        statsEl.appendChild(statDiv);
+    }
+}
+
+function nextQuest() {
+    currentQuestIndex++;
+    if (currentQuestIndex < questLine.length) {
+        showQuest();
+    } else {
+        showResult();
+    }
+}
+
+function showResult() {
+    el("game-area").style.display = "none";
+    el("result-area").style.display = "block";
+
+    let topKey = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+    el("result-content").innerHTML = `
+        <h3>모험 종료!</h3>
+        <p><strong>${player.name}</strong> (${player.class})님의 가장 두드러진 지능은 
+        <span style="color:var(--gold)">${mapNames[topKey]}</span> 입니다.</p>
+    `;
+}
+
+
+if (typeof window.startGame !== 'function') {
+  window.startGame = function(){ console.warn('startGame placeholder called before real definition.'); };
+}
+
 // DOM 요소 가져오기
 const el = id => document.getElementById(id);
 
 // 게임 변수
-let player = {
+var player = {
     name: '',
     class: '',
     companion: null
 };
+// Make player accessible as a global property for other scripts
+window.player = player;
 let scores = {
     linguistic: 0,
     logical: 0,
@@ -271,6 +382,9 @@ const sounds = {
 sounds.bgm.volume = 0.2;
 
 document.body.addEventListener('click', () => {
+    // 모험 시작하기 버튼 이벤트 연결
+    el("btn-start").addEventListener("click", window.startGame);
+
     if (sounds.bgm.paused) {
         sounds.bgm.play().catch(e => console.log("BGM 자동재생이 차단되었습니다."));
     }
@@ -706,28 +820,37 @@ function handleCompanionClick(event) {
 function checkStartButton() {
     const isNameValid = el('input-name').value.trim() !== '';
     const isClassValid = el('input-class').value.trim() !== '';
-    const isCompanionSelected = player.companion !== null;
-    const btnStart = el('btn-start');
+    const isCompanionSelected = !!player.companion;
 
+    const btnStart = el('btn-start');
     if (isNameValid && isClassValid && isCompanionSelected) {
-        btnStart.disabled = false;
+        btnStart.removeAttribute("disabled");  // 속성 제거로 활성화
     } else {
-        btnStart.disabled = true;
+        btnStart.setAttribute("disabled", "true");
     }
 }
 
 // 게임 시작
-function startGame() {
-    player.name = el('input-name').value.trim();
-    player.class = el('input-class').value.trim();
+
+window.startGame = function() {
+    // Gather inputs into player as fallback (fix for start button not transitioning)
+    player.name = el('input-name').value.trim() || player.name;
+    player.class = el('input-class').value.trim() || player.class;
+    if (!player.companion) {
+        const selected = document.querySelector('.char.selected');
+        if (selected && selected.dataset && selected.dataset.id) {
+            player.companion = selected.dataset.id;
+        }
+    }
     if (!player.name || !player.class || !player.companion) {
+        alert("이름, 반, 동료를 모두 입력/선택하세요.");
         return;
     }
-    
+
     // 게임 상태 초기화
     scores = { linguistic: 0, logical: 0, spatial: 0, bodily: 0, musical: 0, interpersonal: 0, intrapersonal: 0, naturalist: 0 };
     currentQuestIndex = 0;
-    questLine = quests[player.companion];
+    questLine = quests[player.companion] || [];
 
     // 화면 전환
     el('pre-game').style.display = 'none';
@@ -735,13 +858,54 @@ function startGame() {
     el('stats-panel').style.display = 'block';
     el('result-area').style.display = 'none';
 
-    // 첫 번째 퀘스트 시작
-    showQuest(questLine[currentQuestIndex]);
+    // 초기 스탯 업데이트 및 첫 퀘스트 표시
     updateStats();
+    if (questLine.length) {
+        showQuest(questLine[currentQuestIndex]);
+    } else {
+        alert("선택된 동료의 퀘스트를 불러올 수 없습니다.");
+    }
+}
+) {
+    // Gather inputs into player as fallback (fix for start button not transitioning)
+    player.name = el('input-name').value.trim() || player.name;
+    player.class = el('input-class').value.trim() || player.class;
+    if (!player.companion) {
+        const selected = document.querySelector('.char.selected');
+        if (selected && selected.dataset && selected.dataset.id) {
+            player.companion = selected.dataset.id;
+        }
+    }
+    if (!player.name || !player.class || !player.companion) {
+        alert("이름, 반, 동료를 모두 입력/선택하세요.");
+        return;
+    }
+
+    // 게임 상태 초기화
+    scores = { linguistic: 0, logical: 0, spatial: 0, bodily: 0, musical: 0, interpersonal: 0, intrapersonal: 0, naturalist: 0 };
+    currentQuestIndex = 0;
+    questLine = quests[player.companion] || [];
+
+    // 화면 전환
+    el('pre-game').style.display = 'none';
+    el('game-area').style.display = 'block';
+    el('stats-panel').style.display = 'block';
+    el('result-area').style.display = 'none';
+
+    // 초기 스탯 업데이트 및 첫 퀘스트 표시
+    updateStats();
+    if (questLine.length) {
+        showQuest(questLine[currentQuestIndex]);
+    } else {
+        alert("선택된 동료의 퀘스트를 불러올 수 없습니다.");
+    }
 }
 
+
 // 퀘스트 진행 및 점수 갱신
-function showQuest(quest) {
+function showQuest(
+{
+quest) {
     el('quest-title').innerText = quest.title;
     el('quest-text').innerText = quest.text;
 
@@ -778,7 +942,9 @@ function handleOptionClick(effects) {
 }
 
 // 통계 업데이트
-function updateStats() {
+function updateStats(
+{
+) {
     const statsDiv = el('stats');
     statsDiv.innerHTML = '';
 
@@ -798,7 +964,9 @@ function updateStats() {
 }
 
 // 결과 화면 표시
-function showResult() {
+function showResult(
+{
+) {
     el('game-area').style.display = 'none';
     el('result-area').style.display = 'block';
 
@@ -861,21 +1029,12 @@ function restartGame() {
 // 이벤트 리스너 추가
 document.addEventListener('DOMContentLoaded', () => {
     // 플레이어 정보 입력 감지
-    el('input-name').addEventListener('input', checkStartButton);
-    el('input-class').addEventListener('input', checkStartButton);
+    const inputs = [el('input-name'), el('input-class')];
+    inputs.forEach(input => input.addEventListener('input', checkStartButton));
 
-    // 동료 선택 이벤트 감지
+    // 동료 선택 이벤트 감지 (수정된 부분)
     document.querySelectorAll('.char').forEach(char => {
-        char.addEventListener('click', (event) => {
-            const clickedChar = event.currentTarget;
-            
-            document.querySelectorAll('.char').forEach(c => c.classList.remove('selected'));
-            
-            clickedChar.classList.add('selected');
-            
-            player.companion = clickedChar.dataset.id;
-            checkStartButton();
-        });
+        char.addEventListener('click', handleCompanionClick);
     });
 
     // 시작 버튼 이벤트
@@ -884,6 +1043,259 @@ document.addEventListener('DOMContentLoaded', () => {
     // 재시작 버튼 이벤트
     el('btn-restart').addEventListener('click', restartGame);
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+    const startBtn = document.getElementById("btn-start");
+    if (startBtn) {
+        startBtn.addEventListener("click", startGame);
+    }
+    const restartBtn = document.getElementById("btn-restart");
+    if (restartBtn) {
+        restartBtn.addEventListener("click", () => window.location.reload());
+    }
+});
+
+
+// expose functions globally
+window.startGame = startGame;
+window.showQuest = showQuest;
+window.applyEffects = applyEffects;
+window.updateStats = updateStats;
+window.showResult = showResult;
+</script>
+
+
+
+<!-- >>> AUTO-FIX: companion listeners robust attach (added by assistant) -->
+<script>
+(function(){
+  function safeAttach(){
+    try{
+      // Show script errors to the user once (helpful for debugging)
+      window.addEventListener('error', function(e){
+        console.error('Script error:', e.message, e.filename + ':' + e.lineno);
+        if(!window._gameErrorShown){
+          window._gameErrorShown = true;
+          setTimeout(function(){
+            try{ alert('게임 스크립트 오류가 감지되었습니다. 콘솔의 에러 메시지를 복사해 채팅으로 보내주세요:\\n' + e.message); }catch(e){};
+          }, 50);
+        }
+      });
+
+      // Attach companion click handlers (prefer existing handleCompanionClick if present)
+      var chars = document.querySelectorAll('.char');
+      if(chars && chars.length){
+        chars.forEach(function(char){
+          try{
+            if (typeof handleCompanionClick === 'function') {
+              if (!char._boundToHandleCompanion) {
+                char.addEventListener('click', handleCompanionClick);
+                char._boundToHandleCompanion = true;
+              }
+            } else {
+              if (!char._boundToFallback) {
+                char.addEventListener('click', function(ev){
+                  document.querySelectorAll('.char').forEach(function(c){ c.classList.remove('selected'); });
+                  var target = ev.currentTarget;
+                  target.classList.add('selected');
+                  try{ if (window.player) window.player.companion = target.dataset.id; }catch(e){};
+                  try{ if (typeof checkStartButton === 'function') checkStartButton(); }catch(e){};
+                });
+                char._boundToFallback = true;
+              }
+            }
+          }catch(inner){ console.warn('char bind error', inner); }
+        });
+      }
+
+      // Ensure inputs trigger checkStartButton
+      try{
+        var nameInput = document.getElementById('input-name');
+        var classInput = document.getElementById('input-class');
+        if(nameInput && classInput){
+          if(typeof checkStartButton === 'function'){
+            nameInput.removeEventListener('input', checkStartButton);
+            classInput.removeEventListener('input', checkStartButton);
+            nameInput.addEventListener('input', checkStartButton);
+            classInput.addEventListener('input', checkStartButton);
+          }
+        }
+      }catch(e){ console.warn('input bind', e); }
+
+      // Ensure start button triggers startGame
+      try{
+        var btnStart = document.getElementById('btn-start');
+        if(btnStart){
+          if(typeof startGame === 'function'){
+            if(!btnStart._startBound){
+              btnStart.addEventListener('click', startGame);
+              btnStart._startBound = true;
+            }
+          } else {
+            if(!btnStart._startBoundFallback){
+              btnStart.addEventListener('click', function(){
+                try{
+                  if(typeof checkStartButton === 'function') checkStartButton();
+                  if(btnStart.disabled) return;
+                  var pre = document.getElementById('pre-game');
+                  var gameArea = document.getElementById('game-area');
+                  if(pre) pre.style.display = 'none';
+                  if(gameArea) gameArea.style.display = 'block';
+                }catch(e){};
+              });
+              btnStart._startBoundFallback = true;
+            }
+          }
+        }
+      }catch(e){ console.warn('start bind', e); }
+
+      // Ensure restart button triggers restartGame
+      try{
+        var btnRestart = document.getElementById('btn-restart');
+        if(btnRestart && typeof restartGame === 'function' && !btnRestart._restartBound){
+          btnRestart.addEventListener('click', restartGame);
+          btnRestart._restartBound = true;
+        }
+      }catch(e){ console.warn('restart bind', e); }
+
+    }catch(err){
+      console.error('Auto-fix attach failed:', err);
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', safeAttach);
+  } else {
+    safeAttach();
+  }
+})();
+
+document.addEventListener("DOMContentLoaded", () => {
+    const startBtn = document.getElementById("btn-start");
+    if (startBtn) {
+        startBtn.addEventListener("click", startGame);
+    }
+    const restartBtn = document.getElementById("btn-restart");
+    if (restartBtn) {
+        restartBtn.addEventListener("click", () => window.location.reload());
+    }
+});
+
+
+// expose functions globally
+window.startGame = startGame;
+window.showQuest = showQuest;
+window.applyEffects = applyEffects;
+window.updateStats = updateStats;
+window.showResult = showResult;
+</script>
+<!-- <<< END AUTO-FIX -->
+
+
+
+<script>
+// --- 오류 보강 패치 ---
+// 시작 버튼 이벤트 확실히 연결
+document.getElementById("btn-start").onclick = startGame;
+
+// startGame 내부 검증 강화
+const _origStartGame = startGame;
+startGame = function() {
+    player.name = el('input-name').value.trim();
+    player.class = el('input-class').value.trim();
+    if (!player.name || !player.class || !player.companion) {
+        alert("이름, 반, 동료를 모두 선택해야 모험을 시작할 수 있습니다!");
+        return;
+    }
+    _origStartGame();
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    const startBtn = document.getElementById("btn-start");
+    if (startBtn) {
+        startBtn.addEventListener("click", startGame);
+    }
+    const restartBtn = document.getElementById("btn-restart");
+    if (restartBtn) {
+        restartBtn.addEventListener("click", () => window.location.reload());
+    }
+});
+
+
+// expose functions globally
+window.startGame = startGame;
+window.showQuest = showQuest;
+window.applyEffects = applyEffects;
+window.updateStats = updateStats;
+window.showResult = showResult;
+</script>
+
+
+<script>
+// >>> STARTBUTTON ENFORCE PATCH
+(function(){
+  function enforceEnable(){
+    try{
+      const btn = document.getElementById('btn-start');
+      if(!btn) return;
+      const name = (document.getElementById('input-name')||{}).value || '';
+      const cls = (document.getElementById('input-class')||{}).value || '';
+      const companion = (window.player && window.player.companion) || null;
+      const anySelected = !!document.querySelector('.char.selected');
+      if(name.trim() && cls.trim() && (companion || anySelected)){
+        btn.disabled = false;
+        btn.removeAttribute('disabled');
+        btn.style.pointerEvents = 'auto';
+      } else {
+        btn.disabled = true;
+        btn.setAttribute('disabled', 'true');
+        btn.style.pointerEvents = 'none';
+      }
+    }catch(e){ console.warn('enforceEnable error', e); }
+  }
+
+  // Attach listeners to keep state updated
+  document.addEventListener('DOMContentLoaded', function(){
+    try{
+      const chars = document.querySelectorAll('.char');
+      chars.forEach(c => c.addEventListener('click', function(){ setTimeout(enforceEnable, 40); }));
+      const nameInput = document.getElementById('input-name');
+      const classInput = document.getElementById('input-class');
+      if(nameInput) nameInput.addEventListener('input', enforceEnable);
+      if(classInput) classInput.addEventListener('input', enforceEnable);
+      // ensure startGame bound to click
+      var btn = document.getElementById('btn-start');
+      if(btn && typeof startGame === 'function' && !btn._boundStart) {
+        btn.addEventListener('click', startGame);
+        btn._boundStart = true;
+      }
+      // run checks a few times to resolve race conditions
+      enforceEnable();
+      var tries = 0;
+      var iv = setInterval(function(){ enforceEnable(); tries++; if(tries>12) clearInterval(iv); }, 250);
+    }catch(e){ console.warn('enforce attach failed', e); }
+  });
+})();
+// <<< END STARTBUTTON ENFORCE PATCH
+
+document.addEventListener("DOMContentLoaded", () => {
+    const startBtn = document.getElementById("btn-start");
+    if (startBtn) {
+        startBtn.addEventListener("click", startGame);
+    }
+    const restartBtn = document.getElementById("btn-restart");
+    if (restartBtn) {
+        restartBtn.addEventListener("click", () => window.location.reload());
+    }
+});
+
+
+// expose functions globally
+window.startGame = startGame;
+window.showQuest = showQuest;
+window.applyEffects = applyEffects;
+window.updateStats = updateStats;
+window.showResult = showResult;
 </script>
 
 </body>
